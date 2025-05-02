@@ -51,7 +51,7 @@ public class BasicAuthenticator extends AuthenticatorBase {
 
 
     public void setCharset(String charsetString) {
-        // Only acceptable options are null, "" or "UTF-8" (case insensitive)
+        // Only acceptable options are null, "" or "UTF-8" (case-insensitive)
         if (charsetString == null || charsetString.isEmpty()) {
             charset = StandardCharsets.ISO_8859_1;
         } else if ("UTF-8".equalsIgnoreCase(charsetString)) {
@@ -76,7 +76,7 @@ public class BasicAuthenticator extends AuthenticatorBase {
         if (authorization != null) {
             authorization.toBytes();
             ByteChunk authorizationBC = authorization.getByteChunk();
-            BasicCredentials credentials = null;
+            BasicCredentials credentials;
             try {
                 credentials = new BasicCredentials(authorizationBC, charset);
                 String username = credentials.getUsername();

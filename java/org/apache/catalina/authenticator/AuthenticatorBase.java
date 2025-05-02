@@ -143,7 +143,7 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
      * Should a session always be used once a user is authenticated? This may offer some performance benefits since the
      * session can then be used to cache the authenticated Principal, hence removing the need to authenticate the user
      * via the Realm on every request. This may be of help for combinations such as BASIC authentication used with the
-     * JNDIRealm or DataSourceRealms. However there will also be the performance cost of creating and GC'ing the
+     * JNDIRealm or DataSourceRealms. However, there will also be the performance cost of creating and GC'ing the
      * session. By default, a session will not be created.
      */
     protected boolean alwaysUseSession = false;
@@ -420,7 +420,7 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
     }
 
     /**
-     * Sets the flag whether authentication information will be send to a reverse proxy on a forwarded request.
+     * Sets the flag whether authentication information will be sent to a reverse proxy on a forwarded request.
      *
      * @param sendAuthInfoResponseHeaders {@code true} if response headers shall be sent, {@code false} otherwise
      */
@@ -721,7 +721,7 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
 
 
     private CallbackHandler createCallbackHandler() {
-        CallbackHandler callbackHandler = null;
+        CallbackHandler callbackHandler;
 
         Class<?> clazz = null;
         try {
@@ -751,12 +751,12 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
     // ------------------------------------------------------ Protected Methods
 
     /**
-     * Provided for sub-classes to implement their specific authentication mechanism.
+     * Provided for subclasses to implement their specific authentication mechanism.
      *
      * @param request  The request that triggered the authentication
      * @param response The response associated with the request
      *
-     * @return {@code true} if the the user was authenticated, otherwise {@code
+     * @return {@code true} if the user was authenticated, otherwise {@code
      *         false}, in which case an authentication challenge will have been written to the response
      *
      * @throws IOException If an I/O problem occurred during the authentication process
@@ -803,6 +803,8 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
             authStatus = state.serverAuthContext.validateRequest(state.messageInfo, client, null);
         } catch (AuthException e) {
             log.debug(sm.getString("authenticator.loginFail"), e);
+            // Need to explicitly set the return code as the ServerAuthContext may not have done.
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return false;
         }
 
@@ -820,7 +822,7 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
                 if (requirePrincipal) {
                     return false;
                 }
-            } else if (cachedAuth == false || !principal.getUserPrincipal().equals(request.getUserPrincipal())) {
+            } else if (!cachedAuth || !principal.getUserPrincipal().equals(request.getUserPrincipal())) {
                 // Skip registration if authentication credentials were
                 // cached and the Principal did not change.
 
@@ -927,14 +929,14 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
                 Principal authorized = context.getRealm().authenticate(username);
                 if (authorized == null) {
                     // Realm doesn't recognise user. Create a user with no roles
-                    // from the authenticated user name
+                    // from the authenticated username
                     if (log.isDebugEnabled()) {
                         log.debug(sm.getString("authenticator.check.authorizeFail", username));
                     }
                     authorized = new GenericPrincipal(username);
                 }
                 String authType = request.getAuthType();
-                if (authType == null || authType.length() == 0) {
+                if (authType == null || authType.isEmpty()) {
                     authType = getAuthMethod();
                 }
                 register(request, response, authorized, authType, username, null);
@@ -1206,7 +1208,7 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
         // path, if there is one
         Container parent = context.getParent();
         while ((sso == null) && (parent != null)) {
-            Valve valves[] = parent.getPipeline().getValves();
+            Valve[] valves = parent.getPipeline().getValves();
             for (Valve valve : valves) {
                 if (valve instanceof SingleSignOn) {
                     sso = (SingleSignOn) valve;

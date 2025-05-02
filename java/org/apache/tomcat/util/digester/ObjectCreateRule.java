@@ -66,13 +66,13 @@ public class ObjectCreateRule extends Rule {
     /**
      * The attribute containing an override class name if it is present.
      */
-    protected String attributeName = null;
+    protected String attributeName;
 
 
     /**
      * The Java class name of the object to be created.
      */
-    protected String className = null;
+    protected String className;
 
 
     // --------------------------------------------------------- Public Methods
@@ -157,13 +157,7 @@ public class ObjectCreateRule extends Rule {
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("ObjectCreateRule[");
-        sb.append("className=");
-        sb.append(className);
-        sb.append(", attributeName=");
-        sb.append(attributeName);
-        sb.append(']');
-        return sb.toString();
+        return "ObjectCreateRule[" + "className=" + className + ", attributeName=" + attributeName + ']';
     }
 
 

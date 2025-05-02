@@ -20,6 +20,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.io.Serial;
 import java.lang.reflect.Method;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -33,12 +34,12 @@ import org.apache.el.util.ReflectionUtil;
 /**
  * @author Jacob Hookom [jacob@hookom.net]
  */
-public class FunctionMapperImpl extends FunctionMapper implements
-        Externalizable {
+public class FunctionMapperImpl extends FunctionMapper implements Externalizable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
-    protected ConcurrentMap<String, Function> functions = new ConcurrentHashMap<>();
+    protected ConcurrentMap<String,Function> functions = new ConcurrentHashMap<>();
 
     @Override
     public Method resolveFunction(String prefix, String localName) {
@@ -67,9 +68,8 @@ public class FunctionMapperImpl extends FunctionMapper implements
 
     @SuppressWarnings("unchecked")
     @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException {
-        this.functions = (ConcurrentMap<String, Function>) in.readObject();
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        this.functions = (ConcurrentMap<String,Function>) in.readObject();
     }
 
     public static class Function implements Externalizable {
@@ -113,8 +113,7 @@ public class FunctionMapperImpl extends FunctionMapper implements
         }
 
         @Override
-        public void readExternal(ObjectInput in) throws IOException,
-                ClassNotFoundException {
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 
             this.prefix = in.readUTF();
             if (this.prefix.isEmpty()) {

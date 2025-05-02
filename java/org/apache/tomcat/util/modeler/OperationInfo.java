@@ -16,6 +16,7 @@
  */
 package org.apache.tomcat.util.modeler;
 
+import java.io.Serial;
 import java.util.Locale;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -32,6 +33,7 @@ import javax.management.MBeanParameterInfo;
  */
 public class OperationInfo extends FeatureInfo {
 
+    @Serial
     private static final long serialVersionUID = 4418342922072614875L;
 
     // ----------------------------------------------------------- Constructors
@@ -49,7 +51,7 @@ public class OperationInfo extends FeatureInfo {
     protected String impact = "UNKNOWN";
     protected String role = "operation";
     protected final ReadWriteLock parametersLock = new ReentrantReadWriteLock();
-    protected ParameterInfo parameters[] = new ParameterInfo[0];
+    protected ParameterInfo[] parameters = new ParameterInfo[0];
 
 
     // ------------------------------------------------------------- Properties
@@ -101,7 +103,7 @@ public class OperationInfo extends FeatureInfo {
     }
 
     /**
-     * @return the set of parameters for this operation.
+     * @return the array of parameters for this operation.
      */
     public ParameterInfo[] getSignature() {
         Lock readLock = parametersLock.readLock();
@@ -126,7 +128,7 @@ public class OperationInfo extends FeatureInfo {
         Lock writeLock = parametersLock.writeLock();
         writeLock.lock();
         try {
-            ParameterInfo results[] = new ParameterInfo[parameters.length + 1];
+            ParameterInfo[] results = new ParameterInfo[parameters.length + 1];
             System.arraycopy(parameters, 0, results, 0, parameters.length);
             results[parameters.length] = parameter;
             parameters = results;
@@ -164,8 +166,8 @@ public class OperationInfo extends FeatureInfo {
     }
 
     protected MBeanParameterInfo[] getMBeanParameterInfo() {
-        ParameterInfo params[] = getSignature();
-        MBeanParameterInfo parameters[] =
+        ParameterInfo[] params = getSignature();
+        MBeanParameterInfo[] parameters =
             new MBeanParameterInfo[params.length];
         for (int i = 0; i < params.length; i++) {
             parameters[i] = params[i].createParameterInfo();

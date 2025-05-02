@@ -15,7 +15,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project name="Tomcat 11.0" default="deploy" basedir="."
+<project name="Tomcat 12.0" default="deploy" basedir="."
   xmlns:if="ant:if"
   xmlns:unless="ant:unless"
   xmlns:jacoco="antlib:org.jacoco.ant"
@@ -57,18 +57,18 @@
   <property name="md5sum.binary-prefix"  value=" *" />
 
   <!-- Exact spec versions (for the manifests etc.) -->
-  <property name="servlet.spec.version"    value="6.1" />
-  <property name="servlet.revision"        value="" />
-  <property name="jsp.spec.version"        value="4.0" />
-  <property name="jsp.revision"            value="" />
-  <property name="el.spec.version"         value="6.0" />
-  <property name="el.revision"             value="" />
-  <property name="websocket.spec.version"  value="2.2" />
-  <property name="websocket.revision"      value="" />
-  <property name="jaspic.spec.version"     value="3.1" />
-  <property name="jaspic.revision"         value="" />
-  <property name="annotation.spec.version" value="3.0" />
-  <property name="annotation.revision"     value="" />
+  <property name="servlet.spec.version"    value="6.2" />
+  <property name="servlet.revision"        value="DRAFT" />
+  <property name="jsp.spec.version"        value="4.1" />
+  <property name="jsp.revision"            value="DRAFT" />
+  <property name="el.spec.version"         value="6.1" />
+  <property name="el.revision"             value="DRAFT" />
+  <property name="websocket.spec.version"  value="2.3" />
+  <property name="websocket.revision"      value="DRAFT" />
+  <property name="jaspic.spec.version"     value="3.2" />
+  <property name="jaspic.revision"         value="DRAFT" />
+  <property name="annotation.spec.version" value="3.1" />
+  <property name="annotation.revision"     value="DRAFT" />
 
   <!-- Release artifact base names -->
   <property name="final.name"            value="${project}-${version}" />
@@ -104,13 +104,12 @@
   <!-- build output directory for generated reflectionless code -->
   <property name="tomcat.xreflect"       value="${tomcat.output}/xreflect"/>
 
-  <!-- Jakarta EE 11 platform requires Java 17+ -->
+  <!-- Jakarta EE 12 platform requires Java 21+ -->
   <!-- Keep in sync with webapps/docs/tomcat-docs.xsl -->
-  <property name="compile.release" value="17"/>
-  <property name="min.java.version" value="17"/>
-  <property name="build.java.version" value="17"/>
+  <property name="compile.release" value="21"/>
+  <property name="min.java.version" value="21"/>
+  <property name="build.java.version" value="21"/>
   <property name="release.java.version" value="22"/>
-  <property name="skip.build.java.version" value="false"/>
 
   <!-- Check Java Build Version -->
   <fail message="Java version ${build.java.version} or newer is required (${java.version} is installed)">
@@ -343,6 +342,7 @@
     <include name="**/*.nsi"/>
     <include name="**/*.pem"/>
     <include name="**/*.pl"/>
+    <include name="**/*.plantuml"/>
     <include name="**/*.policy"/>
     <include name="**/*.pom"/>
     <include name="**/*.project"/>
@@ -631,7 +631,6 @@
     <exclude name="org/apache/catalina/valves/ExtendedAccessLogValve*" />
     <exclude name="org/apache/catalina/valves/ExtendedAccessLogValve*" />
     <exclude name="org/apache/catalina/valves/HealthCheckValve*" />
-    <exclude name="org/apache/catalina/valves/JDBCAccessLogValve*" />
     <exclude name="org/apache/catalina/valves/LoadBalancerDrainingValve*" />
     <exclude name="org/apache/catalina/valves/PersistentValve*" />
 
@@ -1670,15 +1669,6 @@
       </fileset>
     </txt2html>
 
-    <txt2html todir="${tomcat.build}/webapps/examples/jsp/cal">
-      <fileset dir="webapps/examples/WEB-INF/classes/cal">
-        <include name="Entries.java"/>
-        <include name="Entry.java"/>
-        <include name="JspCalendar.java"/>
-        <include name="TableBean.java"/>
-      </fileset>
-    </txt2html>
-
     <txt2html todir="${tomcat.build}/webapps/examples/jsp/jsptoserv">
       <fileset dir="webapps/examples/WEB-INF/classes">
         <include name="ServletToJsp.java"/>
@@ -1948,6 +1938,9 @@
   <target name="test" description="Runs the JUnit test cases"
           depends="test-nio,test-nio2,coverage-report,test-status" />
 
+  <target name="test-clean" description="Runs the JUnit test cases"
+          depends="clean-classes,test-nio,test-nio2,coverage-report,test-status" />
+
   <target name="test-only" description="Runs the JUnit test cases, without compilation"
           depends="test-only-nio,test-only-nio2,test-status" />
 
@@ -2034,6 +2027,8 @@
   <property name="opens.sunrmi" value="--add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED"/>
   <property name="opens.javautil" value="--add-opens=java.base/java.util=ALL-UNNAMED"/>
   <property name="opens.javautilconcurrent" value="--add-opens=java.base/java.util.concurrent=ALL-UNNAMED"/>
+  <!-- Set memory properties (unset by default) -->
+  <property name="test.xmx" value="-Dnoop"/>
 
   <macrodef name="runtests"
             description="Runs the unit tests using the specified connector.
@@ -2057,6 +2052,7 @@
 
           <jvmarg value="${test.jvmarg.egd}"/>
           <jvmarg value="-Dfile.encoding=UTF-8"/>
+          <jvmarg value="${test.xmx}"/>
           <jvmarg value="${runtests.librarypath}"/>
           <jvmarg value="${test.formatter}"/>
           <jvmarg value="-Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack}"/>
@@ -2066,6 +2062,10 @@
           <jvmarg value="${opens.javautil}"/>
           <jvmarg value="${opens.javautilconcurrent}"/>
           <jvmarg value="${native.nativeaccess}"/>
+          <!-- These are managed as jvmargs rather than sysproperty because the default varies by OS -->
+          <jvmarg value="${openssl.ffm.1}" />
+          <jvmarg value="${openssl.ffm.2}" />
+          <jvmarg value="${openssl.ffm.3}" />
 
           <classpath refid="tomcat.test.classpath" />
 
@@ -2122,7 +2122,7 @@
       <executiondata>
         <file file="${coverage.datafile}"/>
       </executiondata>
-      <structure name="Tomcat 11.0.x Code Coverage">
+      <structure name="Tomcat 12.0.x Code Coverage">
         <classfiles>
           <fileset dir="${tomcat.classes}"/>
         </classfiles>
@@ -2252,6 +2252,7 @@
               &lt;br/&gt;
               Apache Tomcat, Tomcat, Apache, the Apache Tomcat logo and the Apache logo are either registered trademarks
               or trademarks of the Apache Software Foundation."
+      locale="${javadoc.locale}"
       encoding="UTF-8"
       docencoding="UTF-8"
       charset="UTF-8"
@@ -2277,6 +2278,7 @@
               &lt;br/&gt;
               Apache Tomcat, Tomcat, Apache, the Apache Tomcat logo and the Apache logo are either registered trademarks
               or trademarks of the Apache Software Foundation."
+      locale="${javadoc.locale}"
       encoding="UTF-8"
       docencoding="UTF-8"
       charset="UTF-8"
@@ -2301,6 +2303,7 @@
               &lt;br/&gt;
               Apache Tomcat, Tomcat, Apache, the Apache Tomcat logo and the Apache logo are either registered trademarks
               or trademarks of the Apache Software Foundation."
+      locale="${javadoc.locale}"
       encoding="UTF-8"
       docencoding="UTF-8"
       charset="UTF-8"
@@ -2325,6 +2328,7 @@
               &lt;br/&gt;
               Apache Tomcat, Tomcat, Apache, the Apache Tomcat logo and the Apache logo are either registered trademarks
               or trademarks of the Apache Software Foundation."
+      locale="${javadoc.locale}"
       encoding="UTF-8"
       docencoding="UTF-8"
       charset="UTF-8"
@@ -2349,6 +2353,7 @@
               &lt;br/&gt;
               Apache Tomcat, Tomcat, Apache, the Apache Tomcat logo and the Apache logo are either registered trademarks
               or trademarks of the Apache Software Foundation."
+      locale="${javadoc.locale}"
       encoding="UTF-8"
       docencoding="UTF-8"
       charset="UTF-8"
@@ -2373,6 +2378,7 @@
               &lt;br/&gt;
               Apache Tomcat, Tomcat, Apache, the Apache Tomcat logo and the Apache logo are either registered trademarks
               or trademarks of the Apache Software Foundation."
+      locale="${javadoc.locale}"
       encoding="UTF-8"
       docencoding="UTF-8"
       charset="UTF-8"
@@ -2395,6 +2401,7 @@
               &lt;br/&gt;
               Apache Tomcat, Tomcat, Apache, the Apache Tomcat logo and the Apache logo are either registered trademarks
               or trademarks of the Apache Software Foundation."
+      locale="${javadoc.locale}"
       encoding="UTF-8"
       docencoding="UTF-8"
       charset="UTF-8"
@@ -2413,8 +2420,8 @@
       <link href="../elapi"/>
       <link href="../websocketapi"/>
       <link href="../jaspicapi"/>
-      <link href="https://docs.oracle.com/en/java/javase/11/docs/api/"/>
-      <link href="https://jakarta.ee/specifications/platform/10/apidocs/"/>
+      <link href="https://docs.oracle.com/en/java/javase/21/docs/api/"/>
+      <link href="https://jakarta.ee/specifications/platform/11/apidocs/"/>
       <packageset dir="${tomcat.dist}/src/java/">
         <include name="org/**"/>
         <exclude name="org/apache/el/parser/**"/>
@@ -2563,50 +2570,112 @@
     </copy>
   </target>
 
-  <target name="-installer-pre-init">
-    <property environment="env" />
+  <target name="-installer-set-properties-1">
+    <property environment="env"/>
     <condition property="wine.ok">
       <or>
-        <os family="windows" />
-        <available file="wine" filepath="${env.PATH}" />
-        <isset property="skip.installer"/>
+        <and>
+          <equals arg1="${nsis.tool}" arg2="wine" forcestring="true"/>
+          <available file="wine" filepath="${env.PATH}"/>
+        </and>
+      </or>
+    </condition>
+    <condition property="nsis.executable.unix" value="${nsis.bin.home}/Bin/makensis">
+      <and>
+        <equals arg1="${nsis.tool}" arg2="makensis" forcestring="true"/>
+        <available file="makensis" filepath="${nsis.bin.home}/Bin"/>
+      </and>
+    </condition>
+    <condition property="nsis.executable.unix" value="makensis">
+      <and>
+        <equals arg1="${nsis.tool}" arg2="makensis" forcestring="true"/>
+        <available file="makensis" filepath="${env.PATH}"/>
+        <not>
+          <available file="makensis" filepath="${nsis.bin.home}/Bin"/>
+        </not>
+      </and>
+    </condition>
+    <condition property="installer.ok">
+      <or>
+        <os family="windows"/>
+        <isset property="wine.ok"/>
+        <isset property="nsis.executable.unix"/>
+        <istrue value="${skip.installer}"/>
       </or>
     </condition>
   </target>
 
-  <target name="-installer-init" depends="-installer-pre-init" unless="${wine.ok}">
-    <fail message="The executable wine was not found on the current path.
-Wine is required to build the Windows installer when running a release build on
-a non-Windows platform. To skip building the Windows installer, set the
-skip.installer property in build.properties" />
+  <target name="-installer-set-properties-2"
+      depends="-installer-set-properties-1"
+      if="nsis.executable.unix">
+    <exec executable="${nsis.executable.unix}" outputproperty="nsis.executable.unix.version">
+      <arg value="-VERSION"/>
+    </exec>
+  </target>
+
+  <target name="-installer-set-properties-3"
+      depends="-installer-set-properties-2">
+    <condition property="nsis.executable.unix.version.ok">
+      <or>
+        <istrue value="${skip.installer}"/>
+        <os family="windows"/>
+        <isset property="wine.ok"/>
+        <equals arg1="v${nsis.version}" arg2="${nsis.executable.unix.version}"/>
+        <not>
+          <!-- Zero length string for version.dev indicates a release build -->
+          <equals arg1="${version.dev}" arg2=""/>
+        </not>
+      </or>
+    </condition>
+  </target>
+
+  <target name="-installer-check-available"
+      depends="-installer-set-properties-1"
+      unless="${installer.ok}">
+    <fail message="The executable ${nsis.tool} was not found on the current path.
+Either wine or makensis are required to build the Windows installer on a non-Windows platform.
+Choose the tool by setting property nsis.tool in build.properties.
+To skip building the Windows installer, set the skip.installer property in build.properties"/>
+  </target>
+
+  <target name="-installer-check-version"
+      depends="-installer-set-properties-3"
+      unless="${nsis.executable.unix.version.ok}">
+    <fail message="An executable makensis was found at: ${nsis.executable.unix}
+with version [${nsis.executable.unix.version}] but version [v${nsis.version}] is required
+for repeatable builds.
+You may need a custom build of makensis. Instructions for this may be found in BUILDING.txt"/>
+  </target>
+
+  <target name="-installer-checks"
+      depends="-installer-check-available,-installer-check-version">
   </target>
 
   <target name="-installer-prep"
-      unless="skip.installer" depends="dist-static,-installer-init">
+      depends="dist-static,-installer-checks"
+      unless="${skip.installer}">
     <copy todir="${tomcat.dist}">
       <fileset dir="res/install-win">
-        <include name="INSTALLLICENSE" />
-        <include name="*.bmp" />
-        <include name="*.ico" />
-        <include name="*.xml" />
-        <include name="Uninstall.exe.sig" />
+        <include name="INSTALLLICENSE"/>
+        <include name="*.bmp"/>
+        <include name="*.ico"/>
+        <include name="*.xml"/>
       </fileset>
     </copy>
-    <copy file="res/install-win/tomcat-installer.exe.sig"
-        tofile="${tomcat.release}/v${version}/bin/${final.name}.exe.sig"
-        failonerror="false"
-        quiet="true" />
-    <copy file="${nsis.installoptions.dll}" todir="${tomcat.dist}" />
-    <copy file="${nsis.nsexec.dll}" todir="${tomcat.dist}" />
-    <copy file="${nsis.nsisdl.dll}" todir="${tomcat.dist}" />
-    <copy file="${nsis.system.dll}" todir="${tomcat.dist}" />
-    <copy file="${nsis.nsdialogs.dll}" todir="${tomcat.dist}" />
+    <condition property="os.cmd.copy" value="copy" else="cp">
+      <or>
+        <os family="windows"/>
+        <isset property="wine.ok"/>
+      </or>
+    </condition>
     <copy file="res/install-win/tomcat.nsi" tofile="${tomcat.dist}/tomcat.nsi" overwrite="true" encoding="ISO-8859-1">
       <filterset refid="version.filters"/>
+      <filterset>
+        <filter token="OS.CMD.COPY" value="${os.cmd.copy}"/>
+      </filterset>
     </copy>
-    <fixcrlf srcdir="${tomcat.dist}" eol="crlf"
-        encoding="ISO-8859-1" fixlast="false" >
-      <patternset refid="text.files" />
+    <fixcrlf srcdir="${tomcat.dist}" eol="crlf" encoding="ISO-8859-1" fixlast="false">
+      <patternset refid="text.files"/>
     </fixcrlf>
     <!-- Reproducible builds: consistent timestamps for installer files -->
     <touch datetime="${tstamp.file}" pattern="yyyy-MM-dd HH:mm:ss">
@@ -2614,93 +2683,165 @@ skip.installer property in build.properties" />
     </touch>
   </target>
 
-  <target name="-installer-create-tempinstaller"
-      unless="skip.installer" depends="-installer-prep">
-    <exec dir="${tomcat.dist}" executable="${nsis.exe}" osfamily="windows">
-      <arg value="/DUNINSTALLONLY" />
-      <arg value="/DNSISDIR=${nsis.home}" />
-      <arg value="/V2" />
-      <arg value="tomcat.nsi" />
-    </exec>
-    <exec dir="${tomcat.dist}" executable="wine" osfamily="unix">
-      <arg value="${nsis.exe}" />
-      <arg value="/DUNINSTALLONLY" />
-      <arg value="/DNSISDIR=${nsis.home}" />
-      <arg value="/V2" />
-      <arg value="tomcat.nsi" />
+  <target name="-uninstaller-wine"
+      if="${wine.ok}"
+      unless="${skip.installer}">
+     <exec dir="${tomcat.dist}" executable="wine" osfamily="unix">
+      <arg value="${nsis.executable.windows}"/>
+      <arg value="/DNSISDIR=${nsis.bin.home}"/>
+      <arg value="/DUNINSTALLONLY"/>
+      <arg value="/V2"/>
+      <arg value="tomcat.nsi"/>
     </exec>
   </target>
 
-  <target name="-installer-create-uninstaller"
-      unless="skip.installer" depends="-installer-create-tempinstaller">
-    <!-- Execute the temporary installer to create the uninstaller -->
-    <exec dir="${tomcat.dist}" executable="${tomcat.dist}/tempinstaller.exe"
-        osfamily="windows"  />
-    <exec dir="${tomcat.dist}" executable="wine" osfamily="unix">
-      <arg value="${tomcat.dist}/tempinstaller.exe" />
+  <target name="-uninstaller-makensis"
+      if="nsis.executable.unix"
+      unless="${skip.installer}">
+    <echo message="Using makensis: ${nsis.executable.unix} version [${nsis.executable.unix.version}]"/>
+    <exec dir="${tomcat.dist}" executable="${nsis.executable.unix}" osfamily="unix">
+      <arg value="-DNSISDIR=${nsis.bin.home}"/>
+      <arg value="-DUNINSTALLONLY"/>
+      <arg value="-V2"/>
+      <arg value="tomcat.nsi"/>
     </exec>
-    <!-- Reproducible builds: consistent timestamps for installer files -->
-    <touch datetime="${tstamp.file}" pattern="yyyy-MM-dd HH:mm:ss">
-      <fileset dir="${tomcat.dist}"/>
-    </touch>
   </target>
 
-  <target name="-installer-sign-uninstaller"
-      unless="skip.installer" depends="-installer-create-uninstaller,setup-jsign"
-      if="${do.codesigning}">
-    <!-- If the detached signature doesn't exist, this will sign the file    -->
-    <!-- and create the detached signature. If the detached signature does   -->
-    <!-- exist it will be attached to the file.                              -->
-    <jsign file="${tomcat.dist}/Uninstall.exe"
+  <target name="-uninstaller-build"
+      depends="-installer-prep,-uninstaller-wine,-uninstaller-makensis"
+      unless="${skip.installer}">
+    <exec dir="${tomcat.dist}" executable="${nsis.executable.windows}" osfamily="windows">
+      <arg value="/DNSISDIR=${nsis.bin.home}"/>
+      <arg value="/DUNINSTALLONLY"/>
+      <arg value="/V2"/>
+      <arg value="tomcat.nsi"/>
+    </exec>
+  </target>
+
+  <target name="-installer-wine"
+      if="${wine.ok}"
+      unless="${skip.installer}">
+     <exec dir="${tomcat.dist}" executable="wine" osfamily="unix">
+      <arg value="${nsis.executable.windows}"/>
+      <arg value="/DNSISDIR=${nsis.bin.home}"/>
+      <arg value="/V2"/>
+      <arg value="tomcat.nsi"/>
+    </exec>
+  </target>
+
+  <target name="-installer-makensis"
+      if="nsis.executable.unix"
+      unless="${skip.installer}">
+    <echo message="Using makensis: ${nsis.executable.unix} version [${nsis.executable.unix.version}]"/>
+    <exec dir="${tomcat.dist}" executable="${nsis.executable.unix}" osfamily="unix">
+      <arg value="-DNSISDIR=${nsis.bin.home}"/>
+      <arg value="-V2"/>
+      <arg value="tomcat.nsi"/>
+    </exec>
+  </target>
+
+  <target name="-installer-build"
+      depends="-installer-prep,-installer-wine,-installer-makensis"
+      unless="${skip.installer}">
+    <exec dir="${tomcat.dist}" executable="${nsis.executable.windows}" osfamily="windows">
+      <arg value="/DNSISDIR=${nsis.bin.home}"/>
+      <arg value="/V2"/>
+      <arg value="tomcat.nsi"/>
+    </exec>
+  </target>
+
+  <target name="-file-jsign"
+    depends="setup-jsign">
+    <fail unless="file" />
+    <fail unless="dir" />
+    <fail unless="savedir" />
+    <echo>Signing ${file} in ${dir}, using/saving signature in ${savedir}</echo>
+    <!-- Copy pre-existing detached signature to signing directory -->
+    <copy file="${savedir}/${file}.sig"
+        todir="${dir}"
+        failonerror="false"/>
+    <!-- If the detached signature doesn't exist, this will sign the file  -->
+    <!-- and create the detached signature. If the detached signature does -->
+    <!-- exist it will be attached to the file.                            -->
+    <jsign file="${dir}/${file}"
         storepass="${codesigning.storepass}"
         storetype="${codesigning.storetype}"
+        keypass="${codesigning.keypass}"
         alias="${codesigning.alias}"
         alg="${codesigning.digest}"
-        tsaurl="http://timestamp.digicert.com"
+        tsaurl="http://ts.ssl.com"
+        tsmode="RFC3161"
         detached="true"/>
-    <!-- Copy detached signature to source tree -->
-    <copy file="${tomcat.dist}/Uninstall.exe.sig" todir="res/install-win"/>
-    <!-- Reproducible builds: consistent timestamps for installer files -->
+    <!-- Move detached signature to source tree -->
+    <move file="${dir}/${file}.sig" todir="${savedir}"/>
+    <!-- Reset timestamp of signed file -->
     <touch datetime="${tstamp.file}" pattern="yyyy-MM-dd HH:mm:ss">
-      <fileset dir="${tomcat.dist}"/>
+      <fileset file="${dir}/${file}"/>
     </touch>
   </target>
 
-  <target name="-installer" unless="skip.installer"
-      depends="-installer-sign-uninstaller">
-    <exec dir="${tomcat.dist}" executable="${nsis.exe}" osfamily="windows">
-      <arg value="/DNSISDIR=${nsis.home}" />
-      <arg value="/V2" />
-      <arg value="tomcat.nsi" />
-    </exec>
-    <exec dir="${tomcat.dist}" executable="wine" osfamily="unix">
-      <arg value="${nsis.exe}" />
-      <arg value="/DNSISDIR=${nsis.home}" />
-      <arg value="/V2" />
-      <arg value="tomcat.nsi" />
-    </exec>
-    <move file="${tomcat.dist}/tomcat-installer.exe" tofile="${tomcat.release}/v${version}/bin/${final.name}.exe" />
-    <hashAndSign file="${tomcat.release}/v${version}/bin/${final.name}.exe" />
+  <target name="-uninstaller-jsign"
+      if="${do.codesigning}"
+      unless="${skip.installer}">
+      <antcall target="-file-jsign" >
+        <param name="dir" value="${tomcat.dist}" />
+        <param name="file" value="Uninstall.exe" />
+        <param name="savedir" value="res/install-win" />
+      </antcall>
   </target>
 
-  <target name="installer-sign"
+  <target name="-installer-jsign"
+      if="${do.codesigning}"
+      unless="${skip.installer}">
+      <antcall target="-file-jsign" >
+        <param name="dir" value="${tomcat.dist}" />
+        <param name="file" value="tomcat-installer.exe" />
+        <param name="savedir" value="res/install-win" />
+      </antcall>
+  </target>
+
+  <target name="installer"
       description="Builds and optionally signs the Windows installer"
-      depends="-installer,setup-jsign" if="${do.codesigning}" >
-    <jsign file="${tomcat.release}/v${version}/bin/${final.name}.exe"
-        storepass="${codesigning.storepass}"
-        storetype="${codesigning.storetype}"
-        alias="${codesigning.alias}"
-        alg="${codesigning.digest}"
-        tsaurl="http://timestamp.digicert.com"
-        detached="true" />
-    <!-- Copy detached signature to source tree -->
-    <copy file="${tomcat.release}/v${version}/bin/${final.name}.exe.sig"
-        tofile="res/install-win/tomcat-installer.exe.sig"/>
-    <delete file="${tomcat.release}/v${version}/bin/${final.name}.exe.sig" />
+      depends="-uninstaller-build,-uninstaller-jsign,-installer-build,-installer-jsign"
+      unless="${skip.installer}">
+    <move file="${tomcat.dist}/tomcat-installer.exe" tofile="${tomcat.release}/v${version}/bin/${final.name}.exe"/>
     <!-- .exe has changed so need to redo checksums and OpenPGP signature -->
-    <delete file="${tomcat.release}/v${version}/bin/${final.name}.exe.asc" />
-    <delete file="${tomcat.release}/v${version}/bin/${final.name}.exe.sha512" />
-    <hashAndSign file="${tomcat.release}/v${version}/bin/${final.name}.exe" />
+    <delete file="${tomcat.release}/v${version}/bin/${final.name}.exe.asc"/>
+    <delete file="${tomcat.release}/v${version}/bin/${final.name}.exe.sha512"/>
+    <hashAndSign file="${tomcat.release}/v${version}/bin/${final.name}.exe"/>
+  </target>
+
+  <target name="-local-makensis-set-properties">
+    <property environment="env"/>
+    <condition property="scons.ok">
+      <available file="scons" filepath="${env.PATH}"/>
+    </condition>
+    <condition property="local.makensis.ok">
+      <isset property="scons.ok"/>
+    </condition>
+  </target>
+
+  <target name="-local-makensis-check"
+      depends="-local-makensis-set-properties"
+      unless="${local.makensis.ok}">
+    <echo message="Unable to build local version of makensis. All following checks must pass."/>
+    <echo message="  Found scons on path: ${scons.ok}"/>
+  </target>
+
+  <target name="local-makensis"
+      description="Builds a local version of makensis with the same version as the equivalent Windows executable"
+      depends="-local-makensis-check"
+      if="${local.makensis.ok}">
+    <exec executable="scons" dir="${nsis.src.home}">
+      <arg value="UNICODE=yes"/>
+      <arg value="PREFIX=${nsis.bin.home}/Bin"/>
+      <arg value="SKIPPLUGINS=all"/>
+      <arg value="SKIPUTILS=all"/>
+      <arg value="SKIPMISC=all"/>
+      <arg value="NSIS_CONFIG_CONST_DATA_PATH=no"/>
+      <arg value="VERSION=${nsis.version}"/>
+      <arg value="install-compiler"/>
+    </exec>
   </target>
 
   <target name="release-version-check">
@@ -2811,14 +2952,23 @@ gpg.exec=${gpg.exec}
 # Set the user name to use to upload the artefacts to Nexus.
 asf.ldap.username=${release.asfusername}
 </echo>
-    <replace file="webapps/docs/changelog.xml"
-        encoding="UTF-8"
-        token="rtext=&quot;in development&quot;"
-        value="rtext=&quot;&quot;" />
+    <!-- Update the changelog to include the release-manager's asfid and remove any rtext -->
+    <replaceregexp file="webapps/docs/changelog.xml"
+               encoding="UTF-8"
+                 byline="true"
+                  match="&lt;section name=&quot;Tomcat ${version.major}.${version.minor}.${version.build}${version.suffix} \([^)]*\).*&gt;"
+                replace="&lt;section name=&quot;Tomcat ${version.major}.${version.minor}.${version.build}${version.suffix} \(${release.asfusername}\)&quot; rtext=&quot;&quot;&gt;" />
+
+    <echo>=====
+
+Configured for ${release.asfusername} to release Tomcat ${version.major}.${version.minor}.${version.build}${version.suffix} using Java ${java.vm.version} and ant ${antversion}
+
+=====
+</echo>
   </target>
 
   <target name="release"
-    depends="clean,release-init,dist-deployer,installer-sign,package-zip,package-winzip,package-tgz,package-deployer-zip,package-deployer-tgz,javadoc,package-docs-tgz,package-src-zip,package-src-tgz,package-src-jar"
+    depends="clean,release-init,dist-deployer,installer,package-zip,package-winzip,package-tgz,package-deployer-zip,package-deployer-tgz,javadoc,package-docs-tgz,package-src-zip,package-src-tgz,package-src-jar"
     description="Create a Tomcat packaged distribution">
 
     <copy file="KEYS"
@@ -3140,6 +3290,7 @@ asf.ldap.username=${release.asfusername}
       <include name="bin/*.sh" />
       <include name=".travis/*.sh" />
       <include name="res/graal/*.sh" />
+      <include name="res/openssl/*.sh" />
     </fixcrlf>
 
     <!-- Reproducible builds: consistent timestamps for distributed files -->
@@ -3317,6 +3468,11 @@ asf.ldap.username=${release.asfusername}
     <delete file="webapps/docs/jdbc-pool.xml"/>
   </target>
 
+
+  <target name="clean-classes">
+    <delete dir="${tomcat.classes}" />
+    <delete dir="${test.classes}" />
+  </target>
 
   <!-- ================ Download and dependency building =================== -->
 
@@ -3544,12 +3700,21 @@ asf.ldap.username=${release.asfusername}
     </antcall>
 
     <antcall target="downloadzip">
-      <param name="sourcefile" value="${nsis.loc}"/>
-      <param name="destfile" value="${nsis.exe}"/>
-      <param name="destdir" value="${nsis.home}/.."/>
+      <param name="sourcefile" value="${nsis.bin.loc}"/>
+      <param name="destfile" value="${nsis.executable.windows}"/>
+      <param name="destdir" value="${nsis.bin.home}/.."/>
       <param name="checksum.enabled" value="${nsis.checksum.enabled}"/>
-      <param name="checksum.algorithm" value="${nsis.checksum.algorithm}"/>
-      <param name="checksum.value" value="${nsis.checksum.value}"/>
+      <param name="checksum.algorithm" value="${nsis.bin.checksum.algorithm}"/>
+      <param name="checksum.value" value="${nsis.bin.checksum.value}"/>
+    </antcall>
+
+    <antcall target="downloadbz2">
+      <param name="sourcefile" value="${nsis.src.loc}"/>
+      <param name="destfile" value="${nsis.src.home}/INSTALL"/>
+      <param name="destdir" value="${nsis.src.home}/.."/>
+      <param name="checksum.enabled" value="${nsis.checksum.enabled}"/>
+      <param name="checksum.algorithm" value="${nsis.src.checksum.algorithm}"/>
+      <param name="checksum.value" value="${nsis.src.checksum.value}"/>
     </antcall>
 
   </target>
@@ -3724,6 +3889,23 @@ asf.ldap.username=${release.asfusername}
     <untar src="${temp.file}.tar" dest="${base.path}"/>
     <delete file="${temp.file}.tar"/>
     <delete file="${temp.file}.tar.gz"/>
+  </target>
+
+  <target name="downloadbz2" unless="exist" if="${execute.download}" depends="testexist,setproxy">
+    <!-- Download and extract the package -->
+    <local name="temp.file"/>
+    <mkdir dir="${base.path}"/>
+    <tempfile property="temp.file" destdir="${base.path}" prefix="download-"/>
+    <get src="${sourcefile}" httpusecaches="${trydownload.httpusecaches}" dest="${temp.file}.tar.bz2" />
+    <verifyChecksum
+      enabled="${checksum.enabled}"
+      algorithm="${checksum.algorithm}" value="${checksum.value}"
+      file="${temp.file}.tar.bz2" name="${sourcefile}" />
+
+    <bunzip2 src="${temp.file}.tar.bz2" dest="${temp.file}.tar"/>
+    <untar src="${temp.file}.tar" dest="${base.path}"/>
+    <delete file="${temp.file}.tar"/>
+    <delete file="${temp.file}.tar.bz2"/>
   </target>
 
   <target name="downloadzip" unless="exist" if="${execute.download}" depends="testexist,setproxy">
@@ -3951,7 +4133,7 @@ Read the Building page on the Apache Tomcat documentation site for details on ho
     </antcall>
   </target>
 
-  <target name="setup-bnd" depends="download-bnd" unless="skip.build.java.version">
+  <target name="setup-bnd" depends="download-bnd" unless="${skip.build.java.version}">
     <!-- Add bnd tasks to project -->
     <path id="bnd.classpath">
       <fileset file="${bnd.jar}" />
@@ -4026,7 +4208,7 @@ Read the Building page on the Apache Tomcat documentation site for details on ho
     </sequential>
   </macrodef>
 
-  <target name="add-osgi" if="${addOSGi}" unless="skip.build.java.version">
+  <target name="add-osgi" if="${addOSGi}" unless="${skip.build.java.version}" >
     <echo message="add-osgi ${jarfile} ${addOSGi}"></echo>
     <local name="filename"/>
     <basename property="filename" file="${jarfile}"/>
@@ -4036,7 +4218,7 @@ Read the Building page on the Apache Tomcat documentation site for details on ho
     >
       <classpath>
         <pathelement location="${bnd.jar}"/>
-        <fileset dir="${tomcat.output}" includes="${libs}" />
+        <fileset dir="${tomcat.output}" includes="${libs}" excludes="build/lib/tomcat-i18n-*.jar" />
       </classpath>
       <bndfiles>
         <pathelement location="${tomcat.bnd}/${filename}.tmp.bnd"/>
@@ -4134,7 +4316,7 @@ Read the Building page on the Apache Tomcat documentation site for details on ho
         <or>
           <available file="${tomcat.release.verify}/@{basefile}.sha512" />
           <and>
-            <contains string="${version}" substring="11.0." /><!-- Super hack -->
+            <contains string="${version}" substring="12.0." /><!-- Super hack -->
             <contains string="@{basefile}" substring="x86" />
           </and>
         </or>
@@ -4229,7 +4411,7 @@ reproducible-10=${reproducible-10}
         <isset property="reproducible-4" />
         <or>
           <isset property="reproducible-5" />
-          <contains string="${version}" substring="11.0." /><!-- Super hack, Tomcat 11 does not produce x86 binaries. -->
+          <contains string="${version}" substring="12.0." /><!-- Super hack, Tomcat 12 does not produce x86 binaries. -->
         </or>
         <isset property="reproducible-6" />
         <isset property="reproducible-7" />

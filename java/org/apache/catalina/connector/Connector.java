@@ -270,7 +270,13 @@ public class Connector extends LifecycleMBeanBase {
 
 
     /**
-     * The behavior when an encoded solidus (slash) is submitted.
+     * The behavior when an encoded reverse solidus (backslash - \) is submitted.
+     */
+    private EncodedSolidusHandling encodedReverseSolidusHandling = EncodedSolidusHandling.DECODE;
+
+
+    /**
+     * The behavior when an encoded solidus (slash - /) is submitted.
      */
     private EncodedSolidusHandling encodedSolidusHandling = EncodedSolidusHandling.REJECT;
 
@@ -655,7 +661,7 @@ public class Connector extends LifecycleMBeanBase {
      */
     public void setProxyName(String proxyName) {
 
-        if (proxyName != null && proxyName.length() > 0) {
+        if (proxyName != null && !proxyName.isEmpty()) {
             this.proxyName = proxyName;
         } else {
             this.proxyName = null;
@@ -866,6 +872,21 @@ public class Connector extends LifecycleMBeanBase {
     }
 
 
+    public String getEncodedReverseSolidusHandling() {
+        return encodedReverseSolidusHandling.getValue();
+    }
+
+
+    public void setEncodedReverseSolidusHandling(String encodedReverseSolidusHandling) {
+        this.encodedReverseSolidusHandling = EncodedSolidusHandling.fromString(encodedReverseSolidusHandling);
+    }
+
+
+    public EncodedSolidusHandling getEncodedReverseSolidusHandlingInternal() {
+        return encodedReverseSolidusHandling;
+    }
+
+
     public String getEncodedSolidusHandling() {
         return encodedSolidusHandling.getValue();
     }
@@ -954,7 +975,7 @@ public class Connector extends LifecycleMBeanBase {
             } else if (addressObj != null) {
                 address = addressObj.toString();
             }
-            if (address.length() > 0) {
+            if (!address.isEmpty()) {
                 sb.append(",address=");
                 sb.append(ObjectName.quote(address));
             }
@@ -1010,18 +1031,16 @@ public class Connector extends LifecycleMBeanBase {
         }
 
         if (JreCompat.isJre22Available() && OpenSSLStatus.getUseOpenSSL() && OpenSSLStatus.isAvailable() &&
-                protocolHandler instanceof AbstractHttp11Protocol) {
+            protocolHandler instanceof AbstractHttp11Protocol<?> jsseProtocolHandler) {
             // Use FFM and OpenSSL if available
-            AbstractHttp11Protocol<?> jsseProtocolHandler = (AbstractHttp11Protocol<?>) protocolHandler;
             if (jsseProtocolHandler.isSSLEnabled() && jsseProtocolHandler.getSslImplementationName() == null) {
                 // OpenSSL is compatible with the JSSE configuration, so use it if it is available
                 jsseProtocolHandler
                         .setSslImplementationName("org.apache.tomcat.util.net.openssl.panama.OpenSSLImplementation");
             }
         } else if (AprStatus.isAprAvailable() && AprStatus.getUseOpenSSL() &&
-                protocolHandler instanceof AbstractHttp11Protocol) {
+            protocolHandler instanceof AbstractHttp11Protocol<?> jsseProtocolHandler) {
             // Use tomcat-native and OpenSSL otherwise, if available
-            AbstractHttp11Protocol<?> jsseProtocolHandler = (AbstractHttp11Protocol<?>) protocolHandler;
             if (jsseProtocolHandler.isSSLEnabled() && jsseProtocolHandler.getSslImplementationName() == null) {
                 // OpenSSL is compatible with the JSSE configuration, so use it if APR is available
                 jsseProtocolHandler.setSslImplementationName(OpenSSLImplementation.class.getName());

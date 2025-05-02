@@ -53,7 +53,7 @@ import org.apache.tomcat.util.http.parser.Host;
  * If the incoming <code>request.getRemoteAddr()</code> matches the valve's list of internal or trusted proxies:
  * </p>
  * <ul>
- * <li>Loop on the comma delimited list of IPs and hostnames passed by the preceding load balancer or proxy in the given
+ * <li>Loop on the comma-delimited list of IPs and hostnames passed by the preceding load balancer or proxy in the given
  * request's Http header named <code>$remoteIpHeader</code> (default value <code>x-forwarded-for</code>). Values are
  * processed in right-to-left order.</li>
  * <li>For each ip/host of the list:
@@ -129,7 +129,7 @@ import org.apache.tomcat.util.http.parser.Host;
  * </tr>
  * <tr>
  * <td>protocolHeaderHttpsValue</td>
- * <td>Value of the <code>protocolHeader</code> to indicate that it is an Https request</td>
+ * <td>Value of the <code>protocolHeader</code> to indicate that it is a Https request</td>
  * <td>N/A</td>
  * <td>String like <code>https</code> or <code>ON</code></td>
  * <td><code>https</code></td>
@@ -389,7 +389,8 @@ public class RemoteIpValve extends ValveBase {
                     "100\\.6[4-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" + "100\\.[7-9]{1}\\d{1}\\.\\d{1,3}\\.\\d{1,3}|" +
                     "100\\.1[0-1]{1}\\d{1}\\.\\d{1,3}\\.\\d{1,3}|" + "100\\.12[0-7]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
                     "172\\.1[6-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" + "172\\.2[0-9]{1}\\.\\d{1,3}\\.\\d{1,3}|" +
-                    "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}|" + "0:0:0:0:0:0:0:1|::1");
+                    "172\\.3[0-1]{1}\\.\\d{1,3}\\.\\d{1,3}|" + "0:0:0:0:0:0:0:1|::1|" +
+                    "fe[89ab]\\p{XDigit}:.*|" + "f[cd]\\p{XDigit}{2}+:.*");
 
     /**
      * @see #setProtocolHeader(String)
@@ -583,7 +584,7 @@ public class RemoteIpValve extends ValveBase {
             StringBuilder concatRemoteIpHeaderValue = new StringBuilder();
 
             for (Enumeration<String> e = request.getHeaders(remoteIpHeader); e.hasMoreElements();) {
-                if (concatRemoteIpHeaderValue.length() > 0) {
+                if (!concatRemoteIpHeaderValue.isEmpty()) {
                     concatRemoteIpHeaderValue.append(", ");
                 }
 
@@ -634,14 +635,14 @@ public class RemoteIpValve extends ValveBase {
                     request.setRemoteHost(remoteIp);
                 }
 
-                if (proxiesHeaderValue.size() == 0) {
+                if (proxiesHeaderValue.isEmpty()) {
                     request.getCoyoteRequest().getMimeHeaders().removeHeader(proxiesHeader);
                 } else {
                     String commaDelimitedListOfProxies = StringUtils.join(proxiesHeaderValue);
                     request.getCoyoteRequest().getMimeHeaders().setValue(proxiesHeader)
                             .setString(commaDelimitedListOfProxies);
                 }
-                if (newRemoteIpHeaderValue.size() == 0) {
+                if (newRemoteIpHeaderValue.isEmpty()) {
                     request.getCoyoteRequest().getMimeHeaders().removeHeader(remoteIpHeader);
                 } else {
                     String commaDelimitedRemoteIpHeaderValue = StringUtils.join(newRemoteIpHeaderValue);
@@ -729,13 +730,13 @@ public class RemoteIpValve extends ValveBase {
                 request.setLocalPort(originalLocalPort);
 
                 MimeHeaders headers = request.getCoyoteRequest().getMimeHeaders();
-                if (originalProxiesHeader == null || originalProxiesHeader.length() == 0) {
+                if (originalProxiesHeader == null || originalProxiesHeader.isEmpty()) {
                     headers.removeHeader(proxiesHeader);
                 } else {
                     headers.setValue(proxiesHeader).setString(originalProxiesHeader);
                 }
 
-                if (originalRemoteIpHeader == null || originalRemoteIpHeader.length() == 0) {
+                if (originalRemoteIpHeader == null || originalRemoteIpHeader.isEmpty()) {
                     headers.removeHeader(remoteIpHeader);
                 } else {
                     headers.setValue(remoteIpHeader).setString(originalRemoteIpHeader);
@@ -823,7 +824,7 @@ public class RemoteIpValve extends ValveBase {
      * @param internalProxies The proxy regular expression
      */
     public void setInternalProxies(String internalProxies) {
-        if (internalProxies == null || internalProxies.length() == 0) {
+        if (internalProxies == null || internalProxies.isEmpty()) {
             this.internalProxies = null;
         } else {
             this.internalProxies = Pattern.compile(internalProxies);
@@ -847,7 +848,7 @@ public class RemoteIpValve extends ValveBase {
 
     /**
      * <p>
-     * Case insensitive value of the protocol header to indicate that the incoming http request uses SSL.
+     * Case-insensitive value of the protocol header to indicate that the incoming http request uses SSL.
      * </p>
      * <p>
      * Default value : <code>https</code>
@@ -870,7 +871,7 @@ public class RemoteIpValve extends ValveBase {
      * Name of the http header that holds the list of trusted proxies that has been traversed by the http request.
      * </p>
      * <p>
-     * The value of this header can be comma delimited.
+     * The value of this header can be comma-delimited.
      * </p>
      * <p>
      * Default value : <code>X-Forwarded-By</code>
@@ -887,7 +888,7 @@ public class RemoteIpValve extends ValveBase {
      * Name of the http header from which the remote ip is extracted.
      * </p>
      * <p>
-     * The value of this header can be comma delimited.
+     * The value of this header can be comma-delimited.
      * </p>
      * <p>
      * Default value : <code>X-Forwarded-For</code>
@@ -900,7 +901,7 @@ public class RemoteIpValve extends ValveBase {
     }
 
     /**
-     * Should this valve set request attributes for IP address, Hostname, protocol and port used for the request? This
+     * Should this valve set request attributes for IP address, Hostname, protocol and port used for the request? These
      * are typically used in conjunction with the {@link AccessLog} which will otherwise log the original values.
      * Default is <code>true</code>. The attributes set are:
      * <ul>
@@ -929,7 +930,7 @@ public class RemoteIpValve extends ValveBase {
      * @param trustedProxies The regular expression
      */
     public void setTrustedProxies(String trustedProxies) {
-        if (trustedProxies == null || trustedProxies.length() == 0) {
+        if (trustedProxies == null || trustedProxies.isEmpty()) {
             this.trustedProxies = null;
         } else {
             this.trustedProxies = Pattern.compile(trustedProxies);

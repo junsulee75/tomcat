@@ -117,11 +117,11 @@ Var ServiceInstallLog
   Page custom CheckUserType
   !insertmacro MUI_PAGE_FINISH
 
-  !ifdef UNINSTALLONLY
-    ;Uninstall Page order
-    !insertmacro MUI_UNPAGE_CONFIRM
-    !insertmacro MUI_UNPAGE_INSTFILES
-  !endif
+!ifdef UNINSTALLONLY
+  ;Uninstall Page order
+  !insertmacro MUI_UNPAGE_CONFIRM
+  !insertmacro MUI_UNPAGE_INSTFILES
+!endif
 
   ;Language
   !insertmacro MUI_LANGUAGE English
@@ -162,8 +162,12 @@ Var ServiceInstallLog
   InstType Minimum
   InstType Full
 
-  ReserveFile System.dll
-  ReserveFile nsDialogs.dll
+!ifdef UNINSTALLONLY
+  !uninstfinalize '@OS.CMD.COPY@ %1 Uninstall.exe'
+!endif
+
+  ReserveFile /plugin System.dll
+  ReserveFile /plugin nsDialogs.dll
   ReserveFile tomcat-users_1.xml
   ReserveFile tomcat-users_2.xml
 
@@ -1141,6 +1145,7 @@ FunctionEnd
 ;Uninstaller Section
 
 !ifdef UNINSTALLONLY
+
   Section Uninstall
 
     ${If} $TomcatServiceName == ""
@@ -1271,5 +1276,4 @@ FunctionEnd
   FunctionEnd
 
 !endif
-
 ;eof

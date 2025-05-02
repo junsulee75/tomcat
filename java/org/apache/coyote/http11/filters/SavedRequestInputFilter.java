@@ -25,15 +25,14 @@ import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.net.ApplicationBufferHandler;
 
 /**
- * Input filter responsible for replaying the request body when restoring the
- * saved request after FORM authentication.
+ * Input filter responsible for replaying the request body when restoring the saved request after FORM authentication.
  */
 public class SavedRequestInputFilter implements InputFilter {
 
     /**
      * The original request body.
      */
-    protected ByteChunk input = null;
+    protected ByteChunk input;
 
     /**
      * Create a new SavedRequestInputFilter.
@@ -46,20 +45,18 @@ public class SavedRequestInputFilter implements InputFilter {
 
     @Override
     public int doRead(ApplicationBufferHandler handler) throws IOException {
-        if(input.getStart()>= input.getEnd()) {
+        if (input.getStart() >= input.getEnd()) {
             return -1;
         }
 
-        ByteBuffer byteBuffer = handler.getByteBuffer();
-        byteBuffer.position(byteBuffer.limit()).limit(byteBuffer.capacity());
-        input.subtract(byteBuffer);
-
-        return byteBuffer.remaining();
+        int len = input.getLength();
+        handler.setByteBuffer(ByteBuffer.wrap(input.getBytes(), input.getStart(), len));
+        input.setStart(input.getEnd());
+        return len;
     }
 
     /**
-     * {@inheritDoc}
-     * Set the content length on the request.
+     * {@inheritDoc} Set the content length on the request.
      */
     @Override
     public void setRequest(org.apache.coyote.Request request) {
@@ -81,6 +78,7 @@ public class SavedRequestInputFilter implements InputFilter {
 
     /**
      * Set the next buffer in the filter pipeline (has no effect).
+     *
      * @param buffer ignored
      */
     @Override
@@ -95,6 +93,7 @@ public class SavedRequestInputFilter implements InputFilter {
 
     /**
      * End the current request (has no effect).
+     *
      * @return 0
      */
     @Override

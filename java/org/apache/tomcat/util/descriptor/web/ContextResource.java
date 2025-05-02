@@ -17,6 +17,7 @@
 package org.apache.tomcat.util.descriptor.web;
 
 
+import java.io.Serial;
 
 /**
  * Representation of a resource reference for a web application, as
@@ -28,6 +29,7 @@ package org.apache.tomcat.util.descriptor.web;
  */
 public class ContextResource extends ResourceBase {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     // ------------------------------------------------------------- Properties
@@ -180,9 +182,6 @@ public class ContextResource extends ResourceBase {
         } else if (!scope.equals(other.scope)) {
             return false;
         }
-        if (singleton != other.singleton) {
-            return false;
-        }
-        return true;
+        return singleton == other.singleton;
     }
 }

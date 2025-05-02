@@ -18,10 +18,9 @@ package org.apache.coyote;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -71,7 +70,7 @@ public final class Request {
      * another 3,000,000 years before it gets back to zero).
      *
      * Local testing shows that 5, 10, 50, 500 or 1000 threads can obtain 60,000,000+ IDs a second from a single
-     * AtomicLong. That is about about 17ns per request. It does not appear that the introduction of this counter will
+     * AtomicLong. That is about 17ns per request. It does not appear that the introduction of this counter will
      * cause a bottleneck for request processing.
      */
     private static final AtomicLong requestIdGenerator = new AtomicLong(0);
@@ -115,12 +114,12 @@ public final class Request {
     /**
      * Path parameters
      */
-    private final Map<String, String> pathParameters = new HashMap<>();
+    private final Map<String,String> pathParameters = new HashMap<>();
 
     /**
      * Notes.
      */
-    private final Object notes[] = new Object[Constants.MAX_NOTES];
+    private final Object[] notes = new Object[Constants.MAX_NOTES];
 
 
     /**
@@ -153,7 +152,7 @@ public final class Request {
     private final MessageBytes remoteUser = MessageBytes.newInstance();
     private boolean remoteUserNeedsAuthorization = false;
     private final MessageBytes authType = MessageBytes.newInstance();
-    private final HashMap<String, Object> attributes = new HashMap<>();
+    private final HashMap<String,Object> attributes = new HashMap<>();
 
     private Response response;
     private volatile ActionHook hook;
@@ -233,7 +232,7 @@ public final class Request {
 
     public boolean isReady() {
         // Assume read is not possible
-        boolean ready = false;
+        boolean ready;
         synchronized (nonBlockingStateLock) {
             if (registeredForRead) {
                 fireListener = true;
@@ -292,7 +291,7 @@ public final class Request {
     }
 
 
-    public Map<String, String> getTrailerFields() {
+    public Map<String,String> getTrailerFields() {
         return trailerFields.toMap();
     }
 
@@ -389,58 +388,6 @@ public final class Request {
 
     // -------------------- encoding/type --------------------
 
-    /**
-     * Get the character encoding used for this request.
-     *
-     * @return The value set via {@link #setCharset(Charset)} or if no call has been made to that method try to obtain
-     *             if from the content type.
-     *
-     * @deprecated Unused. This method will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public String getCharacterEncoding() {
-        if (charsetHolder.getName() == null) {
-            charsetHolder = CharsetHolder.getInstance(getCharsetFromContentType(getContentType()));
-        }
-
-        return charsetHolder.getName();
-    }
-
-
-    /**
-     * Get the character encoding used for this request.
-     *
-     * @return The value set via {@link #setCharset(Charset)} or if no call has been made to that method try to obtain
-     *             if from the content type.
-     *
-     * @throws UnsupportedEncodingException If the user agent has specified an invalid character encoding
-     *
-     * @deprecated Unused. This method will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public Charset getCharset() throws UnsupportedEncodingException {
-        if (charsetHolder.getName() == null) {
-            // Populates charsetHolder
-            getCharacterEncoding();
-        }
-
-        return charsetHolder.getValidatedCharset();
-    }
-
-
-    /**
-     * Unused.
-     *
-     * @param charset The Charset to use for the request
-     *
-     * @deprecated Unused. This method will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public void setCharset(Charset charset) {
-        charsetHolder = CharsetHolder.getInstance(charset);
-    }
-
-
     public CharsetHolder getCharsetHolder() {
         if (charsetHolder.getName() == null) {
             charsetHolder = CharsetHolder.getInstance(getCharsetFromContentType(getContentType()));
@@ -532,17 +479,13 @@ public final class Request {
         response.setRequest(this);
     }
 
-    protected void setHook(ActionHook hook) {
+    void setHook(ActionHook hook) {
         this.hook = hook;
     }
 
     public void action(ActionCode actionCode, Object param) {
         if (hook != null) {
-            if (param == null) {
-                hook.action(actionCode, this);
-            } else {
-                hook.action(actionCode, param);
-            }
+            hook.action(actionCode, Objects.requireNonNullElse(param, this));
         }
     }
 
@@ -577,7 +520,7 @@ public final class Request {
         attributes.put(name, o);
     }
 
-    public HashMap<String, Object> getAttributes() {
+    public HashMap<String,Object> getAttributes() {
         return attributes;
     }
 
@@ -624,10 +567,7 @@ public final class Request {
     }
 
     public boolean getSupportsRelativeRedirects() {
-        if (protocol().equals("") || protocol().equals("HTTP/1.0")) {
-            return false;
-        }
-        return true;
+        return !protocol().equals("") && !protocol().equals("HTTP/1.0");
     }
 
 
@@ -789,9 +729,9 @@ public final class Request {
         headers.recycle();
         trailerFields.recycle();
         /*
-         *  Trailer fields are limited in size by bytes. The following call ensures that any request with a large number
-         *  of small trailer fields doesn't result in a long lasting, large array of headers inside the MimeHeader
-         *  instance.
+         * Trailer fields are limited in size by bytes. The following call ensures that any request with a large number
+         * of small trailer fields doesn't result in a long lasting, large array of headers inside the MimeHeader
+         * instance.
          */
         trailerFields.setLimit(MimeHeaders.DEFAULT_HEADER_SIZE);
         serverNameMB.recycle();
@@ -842,6 +782,15 @@ public final class Request {
 
         startTimeNanos = -1;
         threadId = 0;
+
+        if (hook instanceof NonPipeliningProcessor) {
+            /*
+             * No requirement to maintain state between requests so clear the hook (a.k.a. Processor) and the input
+             * buffer to aid GC.
+             */
+            setHook(null);
+            setInputBuffer(null);
+        }
     }
 
     // -------------------- Info --------------------

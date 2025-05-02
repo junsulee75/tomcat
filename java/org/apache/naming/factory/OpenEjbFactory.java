@@ -23,7 +23,6 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.Name;
 import javax.naming.RefAddr;
-import javax.naming.Reference;
 import javax.naming.spi.ObjectFactory;
 
 import org.apache.naming.EjbRef;
@@ -40,8 +39,7 @@ public class OpenEjbFactory implements ObjectFactory {
     // -------------------------------------------------------------- Constants
 
 
-    protected static final String DEFAULT_OPENEJB_FACTORY =
-        "org.openejb.client.LocalInitialContextFactory";
+    protected static final String DEFAULT_OPENEJB_FACTORY = "org.openejb.client.LocalInitialContextFactory";
 
 
     // -------------------------------------------------- ObjectFactory Methods
@@ -50,23 +48,22 @@ public class OpenEjbFactory implements ObjectFactory {
     /**
      * Create a new EJB instance using OpenEJB.
      *
-     * @param obj The reference object describing the DataSource
-     * @param name the bound name
-     * @param nameCtx unused
+     * @param obj         The reference object describing the DataSource
+     * @param name        the bound name
+     * @param nameCtx     unused
      * @param environment unused
+     *
      * @return the object instance
+     *
      * @throws Exception if an error occur creating the instance
      */
     @Override
-    public Object getObjectInstance(Object obj, Name name, Context nameCtx,
-                                    Hashtable<?,?> environment)
-        throws Exception {
+    public Object getObjectInstance(Object obj, Name name, Context nameCtx, Hashtable<?,?> environment)
+            throws Exception {
 
         Object beanObj = null;
 
-        if (obj instanceof EjbRef) {
-
-            Reference ref = (Reference) obj;
+        if (obj instanceof EjbRef ref) {
 
             String factory = DEFAULT_OPENEJB_FACTORY;
             RefAddr factoryRefAddr = ref.get("openejb.factory");

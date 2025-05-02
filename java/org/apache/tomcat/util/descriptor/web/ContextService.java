@@ -16,6 +16,7 @@
  */
 package org.apache.tomcat.util.descriptor.web;
 
+import java.io.Serial;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,6 +32,7 @@ import java.util.Map;
  */
 public class ContextService extends ResourceBase {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     // ------------------------------------------------------------- Properties
@@ -121,10 +123,10 @@ public class ContextService extends ResourceBase {
      * Declares the specific WSDL service element that is being referred to.
      * It is not specified if no wsdl-file is declared or if WSDL contains only
      * 1 service element.
-     *
+     * <p>
      * A service-qname is composed by a namespaceURI and a localpart.
      * It must be defined if more than 1 service is declared in the WSDL.
-     *
+     * <p>
      * serviceqname[0] : namespaceURI
      * serviceqname[1] : localpart
      */
@@ -185,7 +187,6 @@ public class ContextService extends ResourceBase {
 
     /**
      * A list of Handlers to use for this service-ref.
-     *
      * The instantiation of the handler have to be done.
      */
     private final Map<String, ContextHandler> handlers = new HashMap<>();
@@ -255,7 +256,7 @@ public class ContextService extends ResourceBase {
             sb.append(", port-component/service-endpoint-interface=");
             sb.append(this.getServiceendpoints());
         }
-        if (handlers != null) {
+        if (!handlers.isEmpty()) {
             sb.append(", handler=");
             sb.append(handlers);
         }
@@ -270,10 +271,8 @@ public class ContextService extends ResourceBase {
         int result = super.hashCode();
         result = prime * result +
                 ((displayname == null) ? 0 : displayname.hashCode());
+        result = prime * result + handlers.hashCode();
         result = prime * result +
-                ((handlers == null) ? 0 : handlers.hashCode());
-        result = prime *
-                result +
                 ((jaxrpcmappingfile == null) ? 0 : jaxrpcmappingfile.hashCode());
         result = prime * result +
                 ((largeIcon == null) ? 0 : largeIcon.hashCode());
@@ -307,11 +306,7 @@ public class ContextService extends ResourceBase {
         } else if (!displayname.equals(other.displayname)) {
             return false;
         }
-        if (handlers == null) {
-            if (other.handlers != null) {
-                return false;
-            }
-        } else if (!handlers.equals(other.handlers)) {
+        if (!handlers.equals(other.handlers)) {
             return false;
         }
         if (jaxrpcmappingfile == null) {
@@ -346,12 +341,9 @@ public class ContextService extends ResourceBase {
             return false;
         }
         if (wsdlfile == null) {
-            if (other.wsdlfile != null) {
-                return false;
-            }
-        } else if (!wsdlfile.equals(other.wsdlfile)) {
-            return false;
+            return other.wsdlfile == null;
+        } else {
+            return wsdlfile.equals(other.wsdlfile);
         }
-        return true;
     }
 }

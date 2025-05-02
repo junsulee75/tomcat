@@ -33,7 +33,7 @@ import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * Implementation of <code>LifecycleListener</code> that will init and and destroy APR.
+ * Implementation of <code>LifecycleListener</code> that will init and destroy APR.
  * <p>
  * This listener must only be nested within {@link Server} elements.
  * <p>
@@ -149,9 +149,9 @@ public class AprLifecycleListener implements LifecycleListener {
                     try {
                         initializeSSL();
                     } catch (Throwable t) {
-                        t = ExceptionUtils.unwrapInvocationTargetException(t);
-                        ExceptionUtils.handleThrowable(t);
-                        log.error(sm.getString("aprListener.sslInit"), t);
+                        Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
+                        ExceptionUtils.handleThrowable(throwable);
+                        log.error(sm.getString("aprListener.sslInit"), throwable);
                     }
                 }
                 // Failure to initialize FIPS mode is fatal
@@ -167,7 +167,7 @@ public class AprLifecycleListener implements LifecycleListener {
             synchronized (lock) {
                 // Instance may get destroyed without ever being initialized
                 if (instanceInitialized) {
-                    referenceCount --;
+                    referenceCount--;
                 }
                 if (referenceCount != 0) {
                     // Still being used
@@ -179,8 +179,8 @@ public class AprLifecycleListener implements LifecycleListener {
                 try {
                     terminateAPR();
                 } catch (Throwable t) {
-                    t = ExceptionUtils.unwrapInvocationTargetException(t);
-                    ExceptionUtils.handleThrowable(t);
+                    Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
+                    ExceptionUtils.handleThrowable(throwable);
                     log.info(sm.getString("aprListener.aprDestroy"));
                 }
             }
@@ -193,6 +193,8 @@ public class AprLifecycleListener implements LifecycleListener {
         AprStatus.setAprAvailable(false);
         fipsModeActive = false;
         sslInitialized = false; // terminate() will clean the pool
+        // There could be unreferenced SSL_CTX still waiting for GC
+        System.gc();
         Library.terminate();
     }
 
@@ -221,9 +223,9 @@ public class AprLifecycleListener implements LifecycleListener {
             return;
         } catch (Throwable t) {
             // Library present but failed to load
-            t = ExceptionUtils.unwrapInvocationTargetException(t);
-            ExceptionUtils.handleThrowable(t);
-            log.warn(sm.getString("aprListener.aprInitError", t.getMessage()), t);
+            Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
+            ExceptionUtils.handleThrowable(throwable);
+            log.warn(sm.getString("aprListener.aprInitError", throwable.getMessage()), throwable);
             return;
         }
         if (tcnMajor > 1 && "off".equalsIgnoreCase(SSLEngine)) {
@@ -232,8 +234,8 @@ public class AprLifecycleListener implements LifecycleListener {
                 // Tomcat Native 2.x onwards requires SSL
                 terminateAPR();
             } catch (Throwable t) {
-                t = ExceptionUtils.unwrapInvocationTargetException(t);
-                ExceptionUtils.handleThrowable(t);
+                Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
+                ExceptionUtils.handleThrowable(throwable);
             }
             return;
         }
@@ -245,8 +247,8 @@ public class AprLifecycleListener implements LifecycleListener {
                 // is below required.
                 terminateAPR();
             } catch (Throwable t) {
-                t = ExceptionUtils.unwrapInvocationTargetException(t);
-                ExceptionUtils.handleThrowable(t);
+                Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
+                ExceptionUtils.handleThrowable(throwable);
             }
             return;
         }
@@ -274,9 +276,9 @@ public class AprLifecycleListener implements LifecycleListener {
         sslInitialized = true;
 
         String methodName = "randSet";
-        Class<?> paramTypes[] = new Class[1];
+        Class<?>[] paramTypes = new Class[1];
         paramTypes[0] = String.class;
-        Object paramValues[] = new Object[1];
+        Object[] paramValues = new Object[1];
         paramValues[0] = SSLRandomSeed;
         Class<?> clazz = Class.forName("org.apache.tomcat.jni.SSL");
         Method method = clazz.getMethod(methodName, paramTypes);

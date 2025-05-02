@@ -53,10 +53,9 @@ public class TaglibDescriptorImpl implements TaglibDescriptor {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof TaglibDescriptorImpl)) {
+        if (!(obj instanceof TaglibDescriptorImpl other)) {
             return false;
         }
-        TaglibDescriptorImpl other = (TaglibDescriptorImpl) obj;
         if (location == null) {
             if (other.location != null) {
                 return false;
@@ -65,13 +64,10 @@ public class TaglibDescriptorImpl implements TaglibDescriptor {
             return false;
         }
         if (uri == null) {
-            if (other.uri != null) {
-                return false;
-            }
-        } else if (!uri.equals(other.uri)) {
-            return false;
+            return other.uri == null;
+        } else {
+            return uri.equals(other.uri);
         }
-        return true;
     }
 
 }

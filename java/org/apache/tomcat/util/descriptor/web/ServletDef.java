@@ -16,6 +16,7 @@
  */
 package org.apache.tomcat.util.descriptor.web;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -32,6 +33,7 @@ import org.apache.tomcat.util.res.StringManager;
 
 public class ServletDef implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     private static final StringManager sm =
@@ -106,7 +108,7 @@ public class ServletDef implements Serializable {
     }
 
     public void setServletName(String servletName) {
-        if (servletName == null || servletName.equals("")) {
+        if (servletName == null || servletName.isEmpty()) {
             throw new IllegalArgumentException(
                     sm.getString("servletDef.invalidServletName", servletName));
         }

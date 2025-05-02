@@ -17,6 +17,7 @@
 package org.apache.catalina.filters;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -103,7 +104,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
      * @param entryPoints Comma separated list of URLs to be configured as entry points.
      */
     public void setEntryPoints(String entryPoints) {
-        String values[] = entryPoints.split(",");
+        String[] values = entryPoints.split(",");
         for (String value : values) {
             this.entryPoints.add(value.trim());
         }
@@ -176,7 +177,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
      * @return A collection of predicates representing the URL patterns.
      */
     protected static Collection<Predicate<String>> createNoNoncePredicates(ServletContext context, String patterns) {
-        if (null == patterns || 0 == patterns.trim().length()) {
+        if (null == patterns || patterns.trim().isEmpty()) {
             return null;
         }
 
@@ -184,7 +185,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
             return Collections.singleton(new PatternPredicate(patterns.substring(1, patterns.length() - 1)));
         }
 
-        String values[] = patterns.split(",");
+        String[] values = patterns.split(",");
 
         ArrayList<Predicate<String>> matchers = new ArrayList<>(values.length);
         for (String value : values) {
@@ -209,7 +210,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
      * @return A Predicate which can match the specified pattern, or <code>null</code> if the pattern is null or blank.
      */
     protected static Predicate<String> createNoNoncePredicate(ServletContext context, String pattern) {
-        if (null == pattern || 0 == pattern.trim().length()) {
+        if (null == pattern || pattern.trim().isEmpty()) {
             return null;
         }
         if (pattern.startsWith("mime:")) {
@@ -241,7 +242,9 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
         @Override
         public boolean test(String t) {
             String mimeType = context.getMimeType(t);
-
+            if (mimeType == null) {
+                return false;
+            }
             return predicate.test(mimeType);
         }
 
@@ -317,10 +320,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
             throws IOException, ServletException {
         ServletResponse wResponse = null;
 
-        if (request instanceof HttpServletRequest && response instanceof HttpServletResponse) {
-
-            HttpServletRequest req = (HttpServletRequest) request;
-            HttpServletResponse res = (HttpServletResponse) response;
+        if (request instanceof HttpServletRequest req && response instanceof HttpServletResponse res) {
 
             HttpSession session = req.getSession(false);
 
@@ -475,7 +475,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
 
 
     /**
-     * Determines whether a nonce should be created. This method is provided primarily for the benefit of sub-classes
+     * Determines whether a nonce should be created. This method is provided primarily for the benefit of subclasses
      * that wish to customise this behaviour.
      *
      * @param request The request that triggered the need to potentially create the nonce.
@@ -489,7 +489,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
 
     /**
      * Create a new {@link NonceCache} and store in the {@link HttpSession}. This method is provided primarily for the
-     * benefit of sub-classes that wish to customise this behaviour.
+     * benefit of subclasses that wish to customise this behaviour.
      *
      * @param request The request that triggered the need to create the nonce cache. Unused by the default
      *                    implementation.
@@ -509,7 +509,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
 
     /**
      * Obtain the {@link NonceCache} associated with the request and/or session. This method is provided primarily for
-     * the benefit of sub-classes that wish to customise this behaviour.
+     * the benefit of subclasses that wish to customise this behaviour.
      *
      * @param request The request that triggered the need to obtain the nonce cache. Unused by the default
      *                    implementation.
@@ -564,11 +564,9 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
                 return true;
             }
 
-            if (null != noNoncePatterns) {
-                for (Predicate<String> p : noNoncePatterns) {
-                    if (p.test(url)) {
-                        return false;
-                    }
+            for (Predicate<String> p : noNoncePatterns) {
+                if (p.test(url)) {
+                    return false;
                 }
             }
 
@@ -578,7 +576,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
         /*
          * Return the specified URL with the nonce added to the query string.
          *
-         * @param url URL to be modified
+         * @param url the URL to be modified
          */
         private String addNonce(String url) {
 
@@ -600,7 +598,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
                 path = path.substring(0, question);
             }
             StringBuilder sb = new StringBuilder(path);
-            if (query.length() > 0) {
+            if (!query.isEmpty()) {
                 sb.append(query);
                 sb.append('&');
             } else {
@@ -630,6 +628,7 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
      */
     protected static class LruCache<T> implements NonceCache<T> {
 
+        @Serial
         private static final long serialVersionUID = 1L;
 
         // Although the internal implementation uses a Map, this cache
@@ -638,14 +637,12 @@ public class CsrfPreventionFilter extends CsrfPreventionFilterBase {
 
         public LruCache(final int cacheSize) {
             cache = new LinkedHashMap<>() {
+                @Serial
                 private static final long serialVersionUID = 1L;
 
                 @Override
                 protected boolean removeEldestEntry(Map.Entry<T,T> eldest) {
-                    if (size() > cacheSize) {
-                        return true;
-                    }
-                    return false;
+                    return size() > cacheSize;
                 }
             };
         }

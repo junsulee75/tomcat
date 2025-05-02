@@ -19,6 +19,7 @@ package org.apache.catalina.core;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -52,6 +53,7 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public final class ApplicationFilterConfig implements FilterConfig, Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     static final StringManager sm = StringManager.getManager(ApplicationFilterConfig.class);
@@ -176,13 +178,11 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("ApplicationFilterConfig[");
-        sb.append("name=");
-        sb.append(filterDef.getFilterName());
-        sb.append(", filterClass=");
-        sb.append(filterDef.getFilterClass());
-        sb.append(']');
-        return sb.toString();
+        return "ApplicationFilterConfig[" + "name=" +
+            filterDef.getFilterName() +
+            ", filterClass=" +
+            filterDef.getFilterClass() +
+            ']';
     }
 
     // --------------------------------------------------------- Public Methods
@@ -233,7 +233,7 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
                 filter.init(this);
             } finally {
                 String capturedlog = SystemLogHandler.stopCapture();
-                if (capturedlog != null && capturedlog.length() > 0) {
+                if (capturedlog != null && !capturedlog.isEmpty()) {
                     getServletContext().log(capturedlog);
                 }
             }
@@ -298,13 +298,12 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
         String domain = context.getParent().getParent().getName();
 
         String webMod = "//" + hostName + parentName;
-        String onameStr = null;
+        String onameStr;
         String filterName = filterDef.getFilterName();
         if (Util.objectNameValueNeedsQuote(filterName)) {
             filterName = ObjectName.quote(filterName);
         }
-        if (context instanceof StandardContext) {
-            StandardContext standardContext = (StandardContext) context;
+        if (context instanceof StandardContext standardContext) {
             onameStr = domain + ":j2eeType=Filter,WebModule=" + webMod + ",name=" + filterName + ",J2EEApplication=" +
                     standardContext.getJ2EEApplication() + ",J2EEServer=" + standardContext.getJ2EEServer();
         } else {
@@ -312,7 +311,7 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
         }
         try {
             oname = new ObjectName(onameStr);
-            Registry.getRegistry(null, null).registerComponent(this, oname, null);
+            Registry.getRegistry(null).registerComponent(this, oname, null);
         } catch (Exception ex) {
             log.warn(sm.getString("applicationFilterConfig.jmxRegisterFail", getFilterClass(), getFilterName()), ex);
         }
@@ -323,7 +322,7 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
         // unregister this component
         if (oname != null) {
             try {
-                Registry.getRegistry(null, null).unregisterComponent(oname);
+                Registry.getRegistry(null).unregisterComponent(oname);
                 if (log.isDebugEnabled()) {
                     log.debug(sm.getString("applicationFilterConfig.jmxUnregister", getFilterClass(), getFilterName()));
                 }
@@ -338,6 +337,7 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
     /*
      * Log objects are not Serializable.
      */
+    @Serial
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         ois.defaultReadObject();
         log = LogFactory.getLog(ApplicationFilterConfig.class);

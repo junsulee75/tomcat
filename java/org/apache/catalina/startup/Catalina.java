@@ -312,7 +312,7 @@ public class Catalina {
      *
      * @return <code>true</code> if we should continue processing
      */
-    protected boolean arguments(String args[]) {
+    protected boolean arguments(String[] args) {
 
         boolean isConfig = false;
         boolean isGenerateCode = false;
@@ -495,8 +495,8 @@ public class Catalina {
      * Cluster support is optional. The JARs may have been removed.
      */
     private void addClusterRuleSet(Digester digester, String prefix) {
-        Class<?> clazz = null;
-        Constructor<?> constructor = null;
+        Class<?> clazz;
+        Constructor<?> constructor;
         try {
             clazz = Class.forName("org.apache.catalina.ha.ClusterRuleSet");
             constructor = clazz.getConstructor(String.class);
@@ -568,7 +568,7 @@ public class Catalina {
                 if (!generatedCodeLocation.isAbsolute()) {
                     generatedCodeLocation = new File(Bootstrap.getCatalinaHomeFile(), generatedCodeLocationParameter);
                 }
-            } else {
+            } else if (generatedCodeLocation == null) {
                 generatedCodeLocation = new File(Bootstrap.getCatalinaHomeFile(), "work");
             }
             serverXmlLocation = new File(generatedCodeLocation, generatedCodePackage);
@@ -585,7 +585,11 @@ public class Catalina {
         }
 
         if (serverXml != null) {
-            serverXml.load(this);
+            try {
+                serverXml.load(this);
+            } catch (Exception e) {
+                log.warn(sm.getString("catalina.configFail", "GeneratedCode"), e);
+            }
         } else {
             try (ConfigurationSource.Resource resource = ConfigFileLoader.getSource().getServerXml()) {
                 // Create and execute our Digester
@@ -722,7 +726,7 @@ public class Catalina {
     /*
      * Load using arguments
      */
-    public void load(String args[]) {
+    public void load(String[] args) {
 
         try {
             if (arguments(args)) {
@@ -926,7 +930,8 @@ public class Catalina {
         code.append(" implements ");
         code.append(ServerXml.class.getName().replace('$', '.')).append(" {").append(System.lineSeparator());
         code.append("public void load(").append(Catalina.class.getName());
-        code.append(' ').append(digester.toVariableName(this)).append(") {").append(System.lineSeparator());
+        code.append(' ').append(digester.toVariableName(this)).append(") throws Exception {")
+                .append(System.lineSeparator());
     }
 
 
@@ -938,13 +943,13 @@ public class Catalina {
 
 
     public interface ServerXml {
-        void load(Catalina catalina);
+        void load(Catalina catalina) throws Exception;
     }
 
 
     // --------------------------------------- CatalinaShutdownHook Inner Class
 
-    // XXX Should be moved to embedded !
+
     /**
      * Shutdown hook which will perform a clean shutdown of Catalina if needed.
      */
@@ -986,7 +991,7 @@ public class Catalina {
 
         }
 
-        ClassLoader parentClassLoader = null;
+        ClassLoader parentClassLoader;
 
         @Override
         public void begin(String namespace, String name, Attributes attributes) throws Exception {

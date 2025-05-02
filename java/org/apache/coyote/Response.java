@@ -23,6 +23,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,7 +83,7 @@ public final class Response {
     final MimeHeaders headers = new MimeHeaders();
 
 
-    private Supplier<Map<String, String>> trailerFieldsSupplier = null;
+    private Supplier<Map<String,String>> trailerFieldsSupplier = null;
 
     /**
      * Associated output buffer.
@@ -93,7 +94,7 @@ public final class Response {
     /**
      * Notes.
      */
-    final Object notes[] = new Object[Constants.MAX_NOTES];
+    final Object[] notes = new Object[Constants.MAX_NOTES];
 
 
     /**
@@ -179,7 +180,7 @@ public final class Response {
     }
 
 
-    protected void setHook(ActionHook hook) {
+    void setHook(ActionHook hook) {
         this.hook = hook;
     }
 
@@ -200,11 +201,7 @@ public final class Response {
 
     public void action(ActionCode actionCode, Object param) {
         if (hook != null) {
-            if (param == null) {
-                hook.action(actionCode, this);
-            } else {
-                hook.action(actionCode, param);
-            }
+            hook.action(actionCode, Objects.requireNonNullElse(param, this));
         }
     }
 
@@ -346,7 +343,7 @@ public final class Response {
             throw new IllegalStateException();
         }
 
-        recycle();
+        recycle(false);
     }
 
 
@@ -399,7 +396,7 @@ public final class Response {
     }
 
 
-    public void setTrailerFields(Supplier<Map<String, String>> supplier) {
+    public void setTrailerFields(Supplier<Map<String,String>> supplier) {
         AtomicBoolean trailerFieldsSupported = new AtomicBoolean(false);
         action(ActionCode.IS_TRAILER_FIELDS_SUPPORTED, trailerFieldsSupported);
         if (!trailerFieldsSupported.get()) {
@@ -410,7 +407,7 @@ public final class Response {
     }
 
 
-    public Supplier<Map<String, String>> getTrailerFields() {
+    public Supplier<Map<String,String>> getTrailerFields() {
         return trailerFieldsSupplier;
     }
 
@@ -448,7 +445,7 @@ public final class Response {
     /**
      * Signal that we're done with the headers, and body will follow.
      */
-    public void sendHeaders() {
+    public void commit() {
         action(ActionCode.COMMIT, this);
         setCommitted(true);
     }
@@ -491,53 +488,6 @@ public final class Response {
     }
 
 
-    /**
-     * Overrides the character encoding used in the body of the response. This method must be called prior to writing
-     * output using getWriter().
-     *
-     * @param characterEncoding The name of character encoding.
-     *
-     * @throws UnsupportedEncodingException If the specified name is not recognised
-     *
-     * @deprecated Unused. Will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public void setCharacterEncoding(String characterEncoding) throws UnsupportedEncodingException {
-        if (isCommitted()) {
-            return;
-        }
-
-        charsetHolder = CharsetHolder.getInstance(characterEncoding);
-        charsetHolder.validate();
-    }
-
-
-    /**
-     * Returns the current character set.
-     *
-     * @return The current character set
-     *
-     * @deprecated Unused. Will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public Charset getCharset() {
-        return charsetHolder.getCharset();
-    }
-
-
-    /**
-     * Returns the name of the current encoding.
-     *
-     * @return The name of the current encoding
-     *
-     * @deprecated Unused. Will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public String getCharacterEncoding() {
-        return charsetHolder.getName();
-    }
-
-
     public CharsetHolder getCharsetHolder() {
         return charsetHolder;
     }
@@ -574,8 +524,6 @@ public final class Response {
             return;
         }
 
-        this.contentType = m.toStringNoCharset();
-
         String charsetValue = m.getCharset();
 
         if (charsetValue == null) {
@@ -587,7 +535,7 @@ public final class Response {
             // There is a charset so have to rebuild content-type without it
             this.contentType = m.toStringNoCharset();
             charsetValue = charsetValue.trim();
-            if (charsetValue.length() > 0) {
+            if (!charsetValue.isEmpty()) {
                 charsetHolder = CharsetHolder.getInstance(charsetValue);
                 try {
                     charsetHolder.validate();
@@ -646,10 +594,13 @@ public final class Response {
         contentWritten += len - chunk.remaining();
     }
 
-    // --------------------
 
     public void recycle() {
+        recycle(true);
+    }
 
+
+    private void recycle(boolean responseComplete) {
         contentType = null;
         contentLanguage = null;
         locale = DEFAULT_LOCALE;
@@ -672,7 +623,19 @@ public final class Response {
 
         // update counters
         contentWritten = 0;
+
+        if (responseComplete && hook instanceof NonPipeliningProcessor) {
+            /*
+             * No requirement to maintain state between responses so clear the hook (a.k.a. Processor) and the output
+             * buffer to aid GC.
+             *
+             * Only clear these between responses. They need to be retained when the response is reset.
+             */
+            setHook(null);
+            setOutputBuffer(null);
+        }
     }
+
 
     /**
      * Bytes written by application - i.e. before compression, chunking, etc.
@@ -762,7 +725,7 @@ public final class Response {
             return true;
         }
         // Assume write is not possible
-        boolean ready = false;
+        boolean ready;
         synchronized (nonBlockingStateLock) {
             if (registeredForWrite) {
                 fireListener = true;

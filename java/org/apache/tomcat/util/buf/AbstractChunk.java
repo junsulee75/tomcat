@@ -16,6 +16,7 @@
  */
 package org.apache.tomcat.util.buf;
 
+import java.io.Serial;
 import java.io.Serializable;
 
 import org.apache.tomcat.util.res.StringManager;
@@ -25,6 +26,7 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public abstract class AbstractChunk implements Cloneable, Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
     protected static final StringManager sm = StringManager.getManager(AbstractChunk.class);
 
@@ -113,29 +115,6 @@ public abstract class AbstractChunk implements Cloneable, Serializable {
 
 
     /**
-     * @return start
-     * @deprecated Unused. This method will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public int getOffset() {
-        return start;
-    }
-
-    /**
-     * Set start.
-     * @param off the new start
-     * @deprecated Unused. This method will be removed in Tomcat 12.
-     */
-    @Deprecated
-    public void setOffset(int off) {
-        if (end < off) {
-            end = off;
-        }
-        start = off;
-    }
-
-
-    /**
      * @return the length of the data in the buffer
      */
     public int getLength() {
@@ -204,9 +183,7 @@ public abstract class AbstractChunk implements Cloneable, Serializable {
         if (hasHashCode) {
             return hashCode;
         }
-        int code = 0;
-
-        code = hash();
+        int code = hash();
         hashCode = code;
         hasHashCode = true;
         return code;

@@ -281,7 +281,7 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
 
     public void sendAck() throws IOException {
         // It possible that the protocol configuration is changed between the
-        // request being received and the first read of the body. That could led
+        // request being received and the first read of the body. That could lead
         // to multiple calls to this method so ensure the ACK is only sent once.
         if (!response.isCommitted() && !ackSent) {
             ackSent = true;
@@ -300,7 +300,10 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
      */
     protected void commit() throws IOException {
         response.setCommitted(true);
+        writeHeaders();
+    }
 
+    protected void writeHeaders() throws IOException {
         if (headerBuffer.position() > 0) {
             // Sending the response header buffer
             headerBuffer.flip();
@@ -320,14 +323,15 @@ public class Http11OutputBuffer implements HttpOutputBuffer {
 
     /**
      * Send the response status line.
+     *
+     * @param status The HTTP status code to include in the status line
      */
-    public void sendStatus() {
+    public void sendStatus(int status) {
         // Write protocol name
         write(Constants.HTTP_11_BYTES);
         headerBuffer.put(Constants.SP);
 
         // Write status code
-        int status = response.getStatus();
         switch (status) {
             case 200:
                 write(Constants._200_BYTES);

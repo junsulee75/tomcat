@@ -115,6 +115,8 @@ import org.apache.tomcat.util.net.IPv6Utils;
  * <li><code>%{xxx}s</code> xxx is an attribute in the HttpSession
  * <li><code>%{xxx}t</code> xxx is an enhanced SimpleDateFormat pattern (see Configuration Reference document for
  * details on supported time patterns)
+ * <li><code>%{xxx}L</code> xxx is the identifier to log (see Configuration Reference document for details on supported
+ * identifiers)
  * <li><code>%{xxx}T</code> xxx is the unit for the time taken to process the request (see Configuration Reference
  * document for details on supported units)
  * </ul>
@@ -167,7 +169,12 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
         PEER
     }
 
-    // ------------------------------------------------------ Constructor
+    private enum IdentifierType {
+        CONNECTION,
+        UNKNOWN
+    }
+
+
     public AbstractAccessLogValve() {
         super(true);
     }
@@ -250,11 +257,11 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
             /* Helper object to be able to call SimpleDateFormat.format(). */
             private final Date currentDate = new Date();
 
-            protected final String cache[];
-            private SimpleDateFormat formatter;
+            protected final String[] cache;
+            private final SimpleDateFormat formatter;
             private boolean isCLF = false;
 
-            private Cache parent = null;
+            private final Cache parent;
 
             private Cache(Cache parent) {
                 this(null, parent);
@@ -344,11 +351,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                     currentDate.setTime(time);
                     previousFormat = formatter.format(currentDate);
                     if (isCLF) {
-                        StringBuilder current = new StringBuilder(32);
-                        current.append('[');
-                        current.append(previousFormat);
-                        current.append(']');
-                        previousFormat = current.toString();
+                        previousFormat = "[" + previousFormat + "]";
                     }
                 }
                 cache[index] = previousFormat;
@@ -357,17 +360,17 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
         }
 
         /* Number of cached entries */
-        private int cacheSize = 0;
+        private final int cacheSize;
 
         private final Locale cacheDefaultLocale;
         private final DateFormatCache parent;
         protected final Cache cLFCache;
         private final Map<String,Cache> formatCache = new HashMap<>();
 
-        protected DateFormatCache(int size, Locale loc, DateFormatCache parent) {
+        protected DateFormatCache(int size, Locale loc, DateFormatCache parentFC) {
             cacheSize = size;
             cacheDefaultLocale = loc;
-            this.parent = parent;
+            parent = parentFC;
             Cache parentCache = null;
             if (parent != null) {
                 synchronized (parent) {
@@ -425,12 +428,12 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
     private static final ThreadLocal<Date> localDate = ThreadLocal.withInitial(Date::new);
 
     /**
-     * Are we doing conditional logging. default null. It is the value of <code>conditionUnless</code> property.
+     * Are we doing conditional logging ? default null. It is the value of <code>conditionUnless</code> property.
      */
     protected String condition = null;
 
     /**
-     * Are we doing conditional logging. default null. It is the value of <code>conditionIf</code> property.
+     * Are we doing conditional logging ? default null. It is the value of <code>conditionIf</code> property.
      */
     protected String conditionIf = null;
 
@@ -466,7 +469,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
     /**
      * Buffer pool used for log message generation. Pool used to reduce garbage generation.
      */
-    private SynchronizedStack<CharArrayWriter> charArrayWriters = new SynchronizedStack<>();
+    private final SynchronizedStack<CharArrayWriter> charArrayWriters = new SynchronizedStack<>();
 
     /**
      * Log message buffers are usually recycled and re-used. To prevent excessive memory usage, if a buffer grows beyond
@@ -705,7 +708,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
 
     /**
      * This method returns a Date object that is accurate to within one second. If a thread calls this method to get a
-     * Date and it's been less than 1 second since a new Date was created, this method simply gives out the same Date
+     * Date, and it's been less than 1 second since a new Date was created, this method simply gives out the same Date
      * again so that the system doesn't spend time creating Date objects unnecessarily.
      *
      * @param systime The time
@@ -750,7 +753,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
     }
 
     /**
-     * Marks an AccessLogElement as needing to be have the value cached at the start of the request rather than just
+     * Marks an AccessLogElement as needing to have the value cached at the start of the request rather than just
      * recorded at the end as the source data for the element may not be available at the end of the request. This
      * typically occurs for remote network information, such as ports, IP addresses etc. when the connection is closed
      * unexpectedly. These elements take advantage of these values being cached elsewhere on first request and do not
@@ -837,7 +840,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
 
         @Override
         public void addElement(CharArrayWriter buf, Date date, Request request, Response response, long time) {
-            String value = null;
+            String value;
             if (remoteAddressType == RemoteAddressType.PEER) {
                 value = request.getPeerAddr();
             } else {
@@ -884,10 +887,10 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                     value = host.toString();
                 }
             }
-            if (value == null || value.length() == 0) {
+            if (value == null || value.isEmpty()) {
                 value = request.getRemoteHost();
             }
-            if (value == null || value.length() == 0) {
+            if (value == null || value.isEmpty()) {
                 value = "-";
             }
 
@@ -1063,7 +1066,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                     usesBegin = false;
                     format = format.substring(4);
                 }
-                if (format.length() == 0) {
+                if (format.isEmpty()) {
                     type = FormatType.CLF;
                 } else if (format.equals(secFormat)) {
                     type = FormatType.SEC;
@@ -1101,10 +1104,8 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                 case MSEC_FRAC:
                     frac = timestamp % 1000;
                     if (frac < 100) {
+                        buf.append('0');
                         if (frac < 10) {
-                            buf.append('0');
-                            buf.append('0');
-                        } else {
                             buf.append('0');
                         }
                     }
@@ -1116,10 +1117,8 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                         frac = timestamp % 1000;
                         StringBuilder tripleMsec = new StringBuilder(4);
                         if (frac < 100) {
+                            tripleMsec.append('0');
                             if (frac < 10) {
-                                tripleMsec.append('0');
-                                tripleMsec.append('0');
-                            } else {
                                 tripleMsec.append('0');
                             }
                         }
@@ -1297,7 +1296,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
      * write time taken to process the request - %D, %T
      */
     protected static class ElapsedTimeElement implements AccessLogElement {
-        enum Style {
+        public enum Style {
             SECONDS {
                 @Override
                 public void append(CharArrayWriter buf, long time) {
@@ -1450,10 +1449,10 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                     value = serverName.toString();
                 }
             }
-            if (value == null || value.length() == 0) {
+            if (value == null || value.isEmpty()) {
                 value = request.getServerName();
             }
-            if (value == null || value.length() == 0) {
+            if (value == null || value.isEmpty()) {
                 value = "-";
             }
 
@@ -1582,7 +1581,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
 
         @Override
         public void addElement(CharArrayWriter buf, Date date, Request request, Response response, long time) {
-            Object value = null;
+            Object value;
             if (request != null) {
                 value = request.getAttribute(attribute);
             } else {
@@ -1675,6 +1674,45 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
         }
     }
 
+
+
+    /**
+     * Write identifier element %{xxx}L
+     */
+    protected static class IdentifierElement implements AccessLogElement {
+
+        /**
+         * Type of identifier to log
+         */
+        private final IdentifierType identifierType;
+
+        public IdentifierElement() {
+            this(null);
+        }
+
+
+        public IdentifierElement(String type) {
+            if ("c".equals(type)) {
+                identifierType = IdentifierType.CONNECTION;
+            } else {
+                log.error(sm.getString("accessLogValve.invalidIdentifierType", type));
+                identifierType = IdentifierType.UNKNOWN;
+            }
+        }
+
+        @Override
+        public void addElement(CharArrayWriter buf, Date date, Request request, Response response, long time) {
+            switch(identifierType) {
+                case CONNECTION:
+                    buf.append(request.getServletConnection().getConnectionId());
+                    break;
+                case UNKNOWN:
+                    buf.append("???");
+            }
+        }
+    }
+
+
     /**
      * Parse pattern string and create the array of AccessLogElement.
      *
@@ -1719,7 +1757,7 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                 buf.append(ch);
             }
         }
-        if (buf.length() > 0) {
+        if (!buf.isEmpty()) {
             list.add(new StringElement(buf.toString()));
         }
         return list.toArray(new AccessLogElement[0]);
@@ -1746,42 +1784,32 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
      * @return the log element
      */
     protected AccessLogElement createAccessLogElement(String name, char pattern) {
-        switch (pattern) {
-            case 'i':
-                return new HeaderElement(name);
-            case 'c':
-                return new CookieElement(name);
-            case 'o':
-                return new ResponseHeaderElement(name);
-            case 'a':
-                return new RemoteAddrElement(name);
-            case 'p':
-                return new PortElement(name);
-            case 'r':
+        return switch (pattern) {
+            case 'a' -> new RemoteAddrElement(name);
+            case 'c' -> new CookieElement(name);
+            case 'i' -> new HeaderElement(name);
+            case 'L' -> new IdentifierElement(name);
+            case 'o' -> new ResponseHeaderElement(name);
+            case 'p' -> new PortElement(name);
+            case 'r' -> {
                 if (TLSUtil.isTLSRequestAttribute(name)) {
                     tlsAttributeRequired = true;
                 }
-                return new RequestAttributeElement(name);
-            case 's':
-                return new SessionAttributeElement(name);
-            case 't':
-                return new DateAndTimeElement(name);
-            case 'T':
+                yield new RequestAttributeElement(name);
+            }
+            case 's' -> new SessionAttributeElement(name);
+            case 't' -> new DateAndTimeElement(name);
+            case 'T' ->
                 // ms for milliseconds, us for microseconds, and s for seconds
-                if ("ns".equals(name)) {
-                    return new ElapsedTimeElement(ElapsedTimeElement.Style.NANOSECONDS);
-                } else if ("us".equals(name)) {
-                    return new ElapsedTimeElement(ElapsedTimeElement.Style.MICROSECONDS);
-                } else if ("ms".equals(name)) {
-                    return new ElapsedTimeElement(ElapsedTimeElement.Style.MILLISECONDS);
-                } else if ("fracsec".equals(name)) {
-                    return new ElapsedTimeElement(ElapsedTimeElement.Style.SECONDS_FRACTIONAL);
-                } else {
-                    return new ElapsedTimeElement(false, false);
-                }
-            default:
-                return new StringElement("???");
-        }
+                switch (name) {
+                    case "ns" -> new ElapsedTimeElement(ElapsedTimeElement.Style.NANOSECONDS);
+                    case "us" -> new ElapsedTimeElement(ElapsedTimeElement.Style.MICROSECONDS);
+                    case "ms" -> new ElapsedTimeElement(ElapsedTimeElement.Style.MILLISECONDS);
+                    case "fracsec" -> new ElapsedTimeElement(ElapsedTimeElement.Style.SECONDS_FRACTIONAL);
+                    case null, default -> new ElapsedTimeElement(false, false);
+                };
+            default -> new StringElement("???");
+        };
     }
 
     /**
@@ -1792,54 +1820,31 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
      * @return the log element
      */
     protected AccessLogElement createAccessLogElement(char pattern) {
-        switch (pattern) {
-            case 'a':
-                return new RemoteAddrElement();
-            case 'A':
-                return new LocalAddrElement(ipv6Canonical);
-            case 'b':
-                return new ByteSentElement(true);
-            case 'B':
-                return new ByteSentElement(false);
-            case 'D':
-                return new ElapsedTimeElement(true, false);
-            case 'F':
-                return new FirstByteTimeElement();
-            case 'h':
-                return new HostElement();
-            case 'H':
-                return new ProtocolElement();
-            case 'l':
-                return new LogicalUserNameElement();
-            case 'm':
-                return new MethodElement();
-            case 'p':
-                return new PortElement();
-            case 'q':
-                return new QueryElement();
-            case 'r':
-                return new RequestElement();
-            case 's':
-                return new HttpStatusCodeElement();
-            case 'S':
-                return new SessionIdElement();
-            case 't':
-                return new DateAndTimeElement();
-            case 'T':
-                return new ElapsedTimeElement(false, false);
-            case 'u':
-                return new UserElement();
-            case 'U':
-                return new RequestURIElement();
-            case 'v':
-                return new LocalServerNameElement();
-            case 'I':
-                return new ThreadNameElement();
-            case 'X':
-                return new ConnectionStatusElement();
-            default:
-                return new StringElement("???" + pattern + "???");
-        }
+        return switch (pattern) {
+            case 'a' -> new RemoteAddrElement();
+            case 'A' -> new LocalAddrElement(ipv6Canonical);
+            case 'b' -> new ByteSentElement(true);
+            case 'B' -> new ByteSentElement(false);
+            case 'D' -> new ElapsedTimeElement(true, false);
+            case 'F' -> new FirstByteTimeElement();
+            case 'h' -> new HostElement();
+            case 'H' -> new ProtocolElement();
+            case 'l' -> new LogicalUserNameElement();
+            case 'm' -> new MethodElement();
+            case 'p' -> new PortElement();
+            case 'q' -> new QueryElement();
+            case 'r' -> new RequestElement();
+            case 's' -> new HttpStatusCodeElement();
+            case 'S' -> new SessionIdElement();
+            case 't' -> new DateAndTimeElement();
+            case 'T' -> new ElapsedTimeElement(false, false);
+            case 'u' -> new UserElement();
+            case 'U' -> new RequestURIElement();
+            case 'v' -> new LocalServerNameElement();
+            case 'I' -> new ThreadNameElement();
+            case 'X' -> new ConnectionStatusElement();
+            default -> new StringElement("???" + pattern + "???");
+        };
     }
 
 
@@ -1873,6 +1878,10 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
      * encoding which may not be true for Tomcat so Tomcat uses the Java \\uXXXX encoding.
      */
     protected static void escapeAndAppend(String input, CharArrayWriter dest) {
+        escapeAndAppend(input, dest, false);
+    }
+
+    protected static void escapeAndAppend(String input, CharArrayWriter dest, boolean escapeQuoteAsDouble) {
         if (input == null || input.isEmpty()) {
             dest.append('-');
             return;
@@ -1908,7 +1917,11 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                             dest.write(input, next, current - next);
                         }
                         next = current + 1;
-                        dest.append("\\\"");
+                        if (escapeQuoteAsDouble) {
+                            dest.append("\"\"");
+                        } else {
+                            dest.append("\\\"");
+                        }
                         break;
                     // Don't output individual unchanged chars,
                     // write the sub string only when the first char to encode
@@ -1924,22 +1937,19 @@ public abstract class AbstractAccessLogValve extends ValveBase implements Access
                 next = current + 1;
                 switch (c) {
                     // Standard escapes for some control chars
-                    case '\f': // dec 12
+                    case '\f' -> // dec 12
                         dest.append("\\f");
-                        break;
-                    case '\n': // dec 10
+                    case '\n' -> // dec 10
                         dest.append("\\n");
-                        break;
-                    case '\r': // dec 13
+                    case '\r' -> // dec 13
                         dest.append("\\r");
-                        break;
-                    case '\t': // dec 09
+                    case '\t' -> // dec 09
                         dest.append("\\t");
-                        break;
                     // Unicode escape \\uXXXX
-                    default:
+                    default -> {
                         dest.append("\\u");
                         dest.append(HexUtils.toHexString(c));
+                    }
                 }
             }
         }

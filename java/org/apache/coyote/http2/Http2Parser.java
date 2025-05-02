@@ -460,15 +460,24 @@ class Http2Parser {
 
         ByteArrayInputStream bais = new ByteArrayInputStream(payload, 4, payloadSize - 4);
         Reader r = new BufferedReader(new InputStreamReader(bais, StandardCharsets.US_ASCII));
-        Priority p = Priority.parsePriority(r);
 
-        if (log.isTraceEnabled()) {
-            log.trace(sm.getString("http2Parser.processFramePriorityUpdate.debug", connectionId,
-                    Integer.toString(prioritizedStreamID), Integer.toString(p.getUrgency()),
-                    Boolean.valueOf(p.getIncremental())));
+        try {
+            Priority p = Priority.parsePriority(r);
+
+            if (log.isTraceEnabled()) {
+                log.trace(sm.getString("http2Parser.processFramePriorityUpdate.debug", connectionId,
+                        Integer.toString(prioritizedStreamID), Integer.toString(p.getUrgency()),
+                        Boolean.valueOf(p.getIncremental())));
+            }
+
+            output.priorityUpdate(prioritizedStreamID, p);
+        } catch (IllegalArgumentException iae) {
+            // Priority frames with invalid priority field values should be ignored
+            if (log.isTraceEnabled()) {
+                log.trace(sm.getString("http2Parser.processFramePriorityUpdate.invalid", connectionId,
+                        Integer.toString(prioritizedStreamID)), iae);
+            }
         }
-
-        output.priorityUpdate(prioritizedStreamID, p);
     }
 
 
@@ -625,6 +634,12 @@ class Http2Parser {
             throw new ConnectionException(sm.getString("http2Parser.processFrameHeaders.decodingDataLeft"),
                     Http2Error.COMPRESSION_ERROR);
         }
+
+        /*
+         * Clear the reference to the stream in the HPack decoder now that the headers have been processed so that the
+         * HPack decoder does not retain a reference to this stream. This aids GC.
+         */
+        hpackDecoder.clearHeaderEmitter();
 
         synchronized (output) {
             output.headersEnd(streamId, headersEndStream);

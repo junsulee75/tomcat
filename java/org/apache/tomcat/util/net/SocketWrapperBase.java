@@ -52,7 +52,7 @@ public abstract class SocketWrapperBase<E> {
      * before it gets back to zero).
      *
      * Local testing shows that 5 threads can obtain 60,000,000+ IDs a second
-     * from a single AtomicLong. That is about about 17ns per request. It does
+     * from a single AtomicLong. That is about 17ns per request. It does
      * not appear that the introduction of this counter will cause a bottleneck
      * for connection processing.
      */
@@ -474,7 +474,7 @@ public abstract class SocketWrapperBase<E> {
         /*
          * While the implementations for blocking and non-blocking writes are
          * very similar they have been split into separate methods:
-         * - To allow sub-classes to override them individually. NIO2, for
+         * - To allow subclasses to override them individually. NIO2, for
          *   example, overrides the non-blocking write but not the blocking
          *   write.
          * - To enable a marginally more efficient implemented for blocking
@@ -521,7 +521,7 @@ public abstract class SocketWrapperBase<E> {
         /*
          * While the implementations for blocking and non-blocking writes are
          * very similar they have been split into separate methods:
-         * - To allow sub-classes to override them individually. NIO2, for
+         * - To allow subclasses to override them individually. NIO2, for
          *   example, overrides the non-blocking write but not the blocking
          *   write.
          * - To enable a marginally more efficient implemented for blocking
@@ -619,12 +619,12 @@ public abstract class SocketWrapperBase<E> {
             while (len > 0) {
                 off = off + thisTime;
                 doWrite(false);
-                if (len > 0 && socketBufferHandler.isWriteBufferWritable()) {
+                if (socketBufferHandler.isWriteBufferWritable()) {
                     socketBufferHandler.configureWriteBufferForWrite();
                     thisTime = transfer(buf, off, len, socketBufferHandler.getWriteBuffer());
                 } else {
                     // Didn't write any data in the last non-blocking write.
-                    // Therefore the write buffer will still be full. Nothing
+                    // Therefore, the write buffer will still be full. Nothing
                     // else to do here. Exit the loop.
                     break;
                 }
@@ -854,7 +854,7 @@ public abstract class SocketWrapperBase<E> {
          */
         PENDING,
         /**
-         * Operation was pending and non blocking.
+         * Operation was pending and non-blocking.
          */
         NOT_DONE,
         /**
@@ -912,35 +912,27 @@ public abstract class SocketWrapperBase<E> {
      * all remaining data. If the operation completes inline, the
      * completion handler will not be called.
      */
-    public static final CompletionCheck COMPLETE_WRITE = new CompletionCheck() {
-        @Override
-        public CompletionHandlerCall callHandler(CompletionState state, ByteBuffer[] buffers,
-                int offset, int length) {
-            for (int i = 0; i < length; i++) {
-                if (buffers[offset + i].hasRemaining()) {
-                    return CompletionHandlerCall.CONTINUE;
-                }
+    public static final CompletionCheck COMPLETE_WRITE = (state, buffers, offset, length) -> {
+        for (int i = 0; i < length; i++) {
+            if (buffers[offset + i].hasRemaining()) {
+                return CompletionHandlerCall.CONTINUE;
             }
-            return (state == CompletionState.DONE) ? CompletionHandlerCall.DONE
-                    : CompletionHandlerCall.NONE;
         }
+        return (state == CompletionState.DONE) ? CompletionHandlerCall.DONE
+                : CompletionHandlerCall.NONE;
     };
 
     /**
      * This utility CompletionCheck will cause the write to fully write
      * all remaining data. The completion handler will then be called.
      */
-    public static final CompletionCheck COMPLETE_WRITE_WITH_COMPLETION = new CompletionCheck() {
-        @Override
-        public CompletionHandlerCall callHandler(CompletionState state, ByteBuffer[] buffers,
-                int offset, int length) {
-            for (int i = 0; i < length; i++) {
-                if (buffers[offset + i].hasRemaining()) {
-                    return CompletionHandlerCall.CONTINUE;
-                }
+    public static final CompletionCheck COMPLETE_WRITE_WITH_COMPLETION = (state, buffers, offset, length) -> {
+        for (int i = 0; i < length; i++) {
+            if (buffers[offset + i].hasRemaining()) {
+                return CompletionHandlerCall.CONTINUE;
             }
-            return CompletionHandlerCall.DONE;
         }
+        return CompletionHandlerCall.DONE;
     };
 
     /**
@@ -948,14 +940,8 @@ public abstract class SocketWrapperBase<E> {
      * to be called once some data has been read. If the operation
      * completes inline, the completion handler will not be called.
      */
-    public static final CompletionCheck READ_DATA = new CompletionCheck() {
-        @Override
-        public CompletionHandlerCall callHandler(CompletionState state, ByteBuffer[] buffers,
-                int offset, int length) {
-            return (state == CompletionState.DONE) ? CompletionHandlerCall.DONE
-                    : CompletionHandlerCall.NONE;
-        }
-    };
+    public static final CompletionCheck READ_DATA = (state, buffers, offset, length) ->
+        (state == CompletionState.DONE) ? CompletionHandlerCall.DONE : CompletionHandlerCall.NONE;
 
     /**
      * This utility CompletionCheck will cause the completion handler

@@ -62,9 +62,8 @@ public final class ApplicationFilterFactory {
         }
 
         // Create and initialize a filter chain object
-        ApplicationFilterChain filterChain = null;
-        if (request instanceof Request) {
-            Request req = (Request) request;
+        ApplicationFilterChain filterChain;
+        if (request instanceof Request req) {
             filterChain = (ApplicationFilterChain) req.getFilterChain();
             if (filterChain == null) {
                 filterChain = new ApplicationFilterChain();
@@ -81,7 +80,7 @@ public final class ApplicationFilterFactory {
         // Acquire the filter mappings for this Context
         StandardContext context = (StandardContext) wrapper.getParent();
         filterChain.setDispatcherWrapsSameObject(context.getDispatcherWrapsSameObject());
-        FilterMap filterMaps[] = context.findFilterMaps();
+        FilterMap[] filterMaps = context.findFilterMaps();
 
         // If there are no filter mappings, we are done
         if (filterMaps == null || filterMaps.length == 0) {
@@ -91,7 +90,7 @@ public final class ApplicationFilterFactory {
         // Acquire the information we will need to match filter mappings
         DispatcherType dispatcher = (DispatcherType) request.getAttribute(Globals.DISPATCHER_TYPE_ATTR);
 
-        String requestPath = FilterUtil.getRequestPath(request) ;
+        String requestPath = FilterUtil.getRequestPath(request);
 
         String servletName = wrapper.getName();
 

@@ -37,7 +37,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * JSSESupport.
- *
  * Concrete implementation class for JSSE Support classes.
  *
  * @author EKR
@@ -71,7 +70,7 @@ public class JSSESupport implements SSLSupport, SSLSessionManager {
     }
 
     private SSLSession session;
-    private Map<String,List<String>> additionalAttributes;
+    private final Map<String,List<String>> additionalAttributes;
 
     public JSSESupport(SSLSession session, Map<String,List<String>> additionalAttributes) {
         this.session = session;
@@ -102,7 +101,7 @@ public class JSSESupport implements SSLSupport, SSLSessionManager {
             return null;
         }
 
-        Certificate [] certs=null;
+        Certificate [] certs;
         try {
             certs = session.getPeerCertificates();
         } catch( Throwable t ) {
@@ -170,7 +169,7 @@ public class JSSESupport implements SSLSupport, SSLSessionManager {
         }
         // Expose ssl_session (getId)
         byte [] ssl_session = session.getId();
-        if ( ssl_session == null) {
+        if (ssl_session == null || ssl_session.length == 0) {
             return null;
         }
         StringBuilder buf=new StringBuilder();

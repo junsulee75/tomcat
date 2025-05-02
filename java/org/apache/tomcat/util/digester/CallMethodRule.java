@@ -55,7 +55,7 @@ import org.xml.sax.Attributes;
  * not configurable. </p>
  *
  * <p>Note also that if a CallMethodRule is expecting exactly one parameter
- * and that parameter is not available (eg CallParamRule is used with an
+ * and that parameter is not available (e.g. CallParamRule is used with an
  * attribute name but the attribute does not exist) then the method will
  * not be invoked. If a CallMethodRule is expecting more than one parameter,
  * then it is always invoked, regardless of whether the parameters were
@@ -183,7 +183,7 @@ public class CallMethodRule extends Rule {
     /**
      * The parameter types of the parameters to be collected.
      */
-    protected Class<?> paramTypes[] = null;
+    protected final Class<?>[] paramTypes;
 
 
     /**
@@ -272,7 +272,7 @@ public class CallMethodRule extends Rule {
     public void end(String namespace, String name) throws Exception {
 
         // Retrieve or construct the parameter values array
-        Object parameters[] = null;
+        Object[] parameters = null;
         if (paramCount > 0) {
 
             parameters = (Object[]) digester.popParams();
@@ -308,7 +308,7 @@ public class CallMethodRule extends Rule {
         // Construct the parameter values array we will need
         // We only do the conversion if the param value is a String and
         // the specified paramType is not String.
-        Object paramValues[] = new Object[paramTypes.length];
+        Object[] paramValues = new Object[paramTypes.length];
         for (int i = 0; i < paramTypes.length; i++) {
             // convert nulls and convert stringy parameters
             // for non-stringy param types
@@ -335,16 +335,9 @@ public class CallMethodRule extends Rule {
         }
 
         if (target == null) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("[CallMethodRule]{");
-            sb.append(digester.match);
-            sb.append("} Call target is null (");
-            sb.append("targetOffset=");
-            sb.append(targetOffset);
-            sb.append(",stackdepth=");
-            sb.append(digester.getCount());
-            sb.append(')');
-            throw new org.xml.sax.SAXException(sb.toString());
+            String sb = "[CallMethodRule]{" + digester.match + "} Call target is null (" +
+                    "targetOffset=" + targetOffset + ",stackdepth=" + digester.getCount() + ')';
+            throw new org.xml.sax.SAXException(sb);
         }
 
         // Invoke the required method on the top object

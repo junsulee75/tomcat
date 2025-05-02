@@ -145,14 +145,6 @@ public final class Globals {
     public static final String SSL_SESSION_MGR_ATTR = "jakarta.servlet.request.ssl_session_mgr";
 
 
-    // ------------------------------------------------- Session attribute names
-
-    /**
-     * The subject under which the AccessControlContext is running.
-     */
-    public static final String SUBJECT_ATTR = "javax.security.auth.subject";
-
-
     // ------------------------------------------ ServletContext attribute names
 
     /**
@@ -236,4 +228,9 @@ public final class Globals {
      * Default domain for MBeans if none can be determined
      */
     public static final String DEFAULT_MBEAN_DOMAIN = "Catalina";
+
+
+    // ----------------------------------------- Specification related constants
+
+    public static final String CONTENT_TYPE_FORM_URL_ENCODING = "application/x-www-form-urlencoded";
 }

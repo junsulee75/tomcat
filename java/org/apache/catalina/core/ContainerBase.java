@@ -289,7 +289,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
         Container current = this;
         while (current != null) {
             String name = current.getName();
-            if ((name == null) || (name.equals(""))) {
+            if ((name == null) || (name.isEmpty())) {
                 name = "/";
             } else if (name.startsWith("##")) {
                 name = "/" + name;
@@ -340,7 +340,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
     @Override
     public void setCluster(Cluster cluster) {
 
-        Cluster oldCluster = null;
+        Cluster oldCluster;
         Lock writeLock = clusterLock.writeLock();
         writeLock.lock();
         try {
@@ -495,7 +495,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
     @Override
     public void setRealm(Realm realm) {
 
-        Realm oldRealm = null;
+        Realm oldRealm;
         Lock l = realmLock.writeLock();
         l.lock();
         try {
@@ -968,7 +968,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
     @Override
     public void fireContainerEvent(String type, Object data) {
 
-        if (listeners.size() < 1) {
+        if (listeners.isEmpty()) {
             return;
         }
 
@@ -1016,7 +1016,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
             } else if (c == null) {
                 // May happen in unit testing and/or some embedding scenarios
                 keyProperties.append(",container");
-                keyProperties.append(containerCount++);
+                keyProperties.append(containerCount);
                 keyProperties.append("=null");
                 break;
             } else {
@@ -1089,7 +1089,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
         StringBuilder sb = new StringBuilder();
         Container parent = getParent();
         if (parent != null) {
-            sb.append(parent.toString());
+            sb.append(parent);
             sb.append('.');
         }
         sb.append(this.getClass().getSimpleName());
@@ -1157,13 +1157,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
 
     // ---------------------------- Inner classes used with start/stop Executor
 
-    private static class StartChild implements Callable<Void> {
-
-        private Container child;
-
-        StartChild(Container child) {
-            this.child = child;
-        }
+    private record StartChild(Container child) implements Callable<Void> {
 
         @Override
         public Void call() throws LifecycleException {
@@ -1172,13 +1166,7 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
         }
     }
 
-    private static class StopChild implements Callable<Void> {
-
-        private Container child;
-
-        StopChild(Container child) {
-            this.child = child;
-        }
+    private record StopChild(Container child) implements Callable<Void> {
 
         @Override
         public Void call() throws LifecycleException {

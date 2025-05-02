@@ -27,7 +27,8 @@ import javax.net.ssl.TrustManager;
 public class TokenStreamProvider extends AbstractStreamProvider {
 
     private String token;
-    private SSLSocketFactory factory;
+    private final SSLSocketFactory factory;
+
 
     TokenStreamProvider(String token, String caCertFile) throws Exception {
         this.token = token;
@@ -37,10 +38,17 @@ public class TokenStreamProvider extends AbstractStreamProvider {
         this.factory = context.getSocketFactory();
     }
 
+
     @Override
     protected SSLSocketFactory getSocketFactory() {
         return factory;
     }
+
+
+    protected void setToken(String token) {
+        this.token = token;
+    }
+
 
     @Override
     public InputStream openStream(String url, Map<String,String> headers, int connectTimeout, int readTimeout)
@@ -56,5 +64,4 @@ public class TokenStreamProvider extends AbstractStreamProvider {
             throw new IOException(sm.getString("tokenStream.failedConnection", url, token), e);
         }
     }
-
 }

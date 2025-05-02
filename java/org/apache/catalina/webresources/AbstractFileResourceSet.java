@@ -37,6 +37,7 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
     private String absoluteBase;
     private String canonicalBase;
     private boolean readOnly = false;
+    private Boolean allowLinking;
 
     protected AbstractFileResourceSet(String internalPath) {
         setInternalPath(internalPath);
@@ -54,6 +55,19 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
     @Override
     public boolean isReadOnly() {
         return readOnly;
+    }
+
+    @Override
+    public void setAllowLinking(boolean allowLinking) {
+        this.allowLinking = Boolean.valueOf(allowLinking);
+    }
+
+    @Override
+    public boolean getAllowLinking() {
+        if (allowLinking == null) {
+            return getRoot().getAllowLinking();
+        }
+        return allowLinking.booleanValue();
     }
 
     protected final File file(String name, boolean mustExist) {
@@ -78,7 +92,7 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
 
         // If allow linking is enabled, files are not limited to being located
         // under the fileBase so all further checks are disabled.
-        if (getRoot().getAllowLinking()) {
+        if (getAllowLinking()) {
             return file;
         }
 
@@ -102,8 +116,8 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
         /*
          * Ensure that the file is not outside the fileBase. This should not be possible for standard requests (the
          * request is normalized early in the request processing) but might be possible for some access via the Servlet
-         * API (e.g. RequestDispatcher) therefore these checks are retained as an additional safety measure absoluteBase
-         * has been normalized so absPath needs to be normalized as well.
+         * API (e.g. RequestDispatcher) therefore these checks are retained as an additional safety measure.
+         * absoluteBase has been normalized so absPath needs to be normalized as well.
          */
         String absPath = normalize(file.getAbsolutePath());
         if (absPath == null || absoluteBase.length() > absPath.length()) {
@@ -117,14 +131,14 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
         canPath = canPath.substring(canonicalBase.length());
 
         // The remaining request path must start with '/' if it has non-zero length
-        if (canPath.length() > 0 && canPath.charAt(0) != File.separatorChar) {
+        if (!canPath.isEmpty() && canPath.charAt(0) != File.separatorChar) {
             return null;
         }
 
         // Case sensitivity check
         // The normalized requested path should be an exact match the equivalent
         // canonical path. If it is not, possible reasons include:
-        // - case differences on case insensitive file systems
+        // - case differences on case-insensitive file systems
         // - Windows removing a trailing ' ' or '.' from the file name
         //
         // In all cases, a mismatch here results in the resource not being
@@ -132,7 +146,7 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
         //
         // absPath is normalized so canPath needs to be normalized as well
         // Can't normalize canPath earlier as canonicalBase is not normalized
-        if (canPath.length() > 0) {
+        if (!canPath.isEmpty()) {
             canPath = normalize(canPath);
         }
         if (!canPath.equals(absPath)) {
@@ -182,10 +196,7 @@ public abstract class AbstractFileResourceSet extends AbstractResourceSet {
         // level APIs are used to create the files that bypass various checks.
         // File names that end in ' ' are known to cause problems when using
         // File#getCanonicalPath().
-        if (name.charAt(len - 1) == ' ') {
-            return true;
-        }
-        return false;
+        return name.charAt(len - 1) == ' ';
     }
 
 

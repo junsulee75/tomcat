@@ -44,6 +44,7 @@ import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.IntrospectionUtils;
 import org.apache.tomcat.util.IntrospectionUtils.PropertySource;
 import org.apache.tomcat.util.buf.B2CConverter;
+import org.apache.tomcat.util.buf.ToStringUtil;
 import org.apache.tomcat.util.res.StringManager;
 import org.xml.sax.Attributes;
 import org.xml.sax.EntityResolver;
@@ -214,7 +215,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * The EntityResolver used by the SAX parser. By default it use this class
+     * The EntityResolver used by the SAX parser. By default, it uses this class
      */
     protected EntityResolver entityResolver;
 
@@ -294,7 +295,7 @@ public class Digester extends DefaultHandler2 {
 
     /**
      * The "root" element of the stack (in other words, the last object
-     * that was popped.
+     * that was popped).
      */
     protected Object root = null;
 
@@ -414,7 +415,7 @@ public class Digester extends DefaultHandler2 {
     public String toVariableName(Object object) {
         boolean found = false;
         int pos = 0;
-        if (known.size() > 0) {
+        if (!known.isEmpty()) {
             for (int i = known.size() - 1; i >= 0; i--) {
                 if (known.get(i) == object) {
                     pos = i;
@@ -662,7 +663,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Set the public id of the current file being parse.
+     * Set the public id of the current file being parsed.
      * @param publicId the DTD/Schema public's id.
      */
     public void setPublicId(String publicId) {
@@ -751,7 +752,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * @return the boolean as to whether the context classloader should be used.
+     * @return a boolean to indicate if the context classloader should be used.
      */
     public boolean getUseContextClassLoader() {
         return useContextClassLoader;
@@ -763,7 +764,7 @@ public class Digester extends DefaultHandler2 {
      * calling <code>Thread.currentThread().getContextClassLoader()</code>)
      * to resolve/load classes that are defined in various rules.  If not
      * using Context ClassLoader, then the class-loading defaults to
-     * using the calling-class' ClassLoader.
+     * using the calling class' ClassLoader.
      *
      * @param use determines whether to use Context ClassLoader.
      */
@@ -856,7 +857,6 @@ public class Digester extends DefaultHandler2 {
 
     /**
      * Return the XMLReader to be used for parsing the input document.
-     *
      * FIX ME: there is a bug in JAXP/XERCES that prevent the use of a
      * parser that contains a schema with a DTD.
      * @return the XML reader
@@ -904,7 +904,7 @@ public class Digester extends DefaultHandler2 {
      * @exception SAXException if a parsing error is to be reported
      */
     @Override
-    public void characters(char buffer[], int start, int length) throws SAXException {
+    public void characters(char[] buffer, int start, int length) throws SAXException {
 
         if (saxLog.isTraceEnabled()) {
             saxLog.trace("characters(" + new String(buffer, start, length) + ")");
@@ -986,17 +986,16 @@ public class Digester extends DefaultHandler2 {
         // the actual element name is either in localName or qName, depending
         // on whether the parser is namespace aware
         String name = localName;
-        if ((name == null) || (name.length() < 1)) {
+        if ((name == null) || (name.isEmpty())) {
             name = qName;
         }
 
         // Fire "body" events for all relevant rules
         List<Rule> rules = matches.pop();
-        if ((rules != null) && (rules.size() > 0)) {
+        if ((rules != null) && (!rules.isEmpty())) {
             String bodyText = this.bodyText.toString().intern();
-            for (Rule value : rules) {
+            for (Rule rule : rules) {
                 try {
-                    Rule rule = value;
                     if (debug) {
                         log.trace("  Fire body() for " + rule);
                     }
@@ -1094,7 +1093,7 @@ public class Digester extends DefaultHandler2 {
      * @exception SAXException if a parsing error is to be reported
      */
     @Override
-    public void ignorableWhitespace(char buffer[], int start, int len) throws SAXException {
+    public void ignorableWhitespace(char[] buffer, int start, int len) throws SAXException {
 
         if (saxLog.isTraceEnabled()) {
             saxLog.trace("ignorableWhitespace(" + new String(buffer, start, len) + ")");
@@ -1236,13 +1235,13 @@ public class Digester extends DefaultHandler2 {
         // the actual element name is either in localName or qName, depending
         // on whether the parser is namespace aware
         String name = localName;
-        if ((name == null) || (name.length() < 1)) {
+        if ((name == null) || (name.isEmpty())) {
             name = qName;
         }
 
         // Compute the current matching rule
         StringBuilder sb = new StringBuilder(match);
-        if (match.length() > 0) {
+        if (!match.isEmpty()) {
             sb.append('/');
         }
         sb.append(name);
@@ -1254,14 +1253,19 @@ public class Digester extends DefaultHandler2 {
         // Fire "begin" events for all relevant rules
         List<Rule> rules = getRules().match(namespaceURI, match);
         matches.push(rules);
-        if ((rules != null) && (rules.size() > 0)) {
-            for (Rule value : rules) {
+        if ((rules != null) && (!rules.isEmpty())) {
+            for (Rule rule : rules) {
                 try {
-                    Rule rule = value;
                     if (debug) {
                         log.trace("  Fire begin() for " + rule);
                     }
                     rule.begin(namespaceURI, name, list);
+                } catch (ClassNotFoundException cnfe) {
+                    log.error(sm.getString("digester.error.begin"), cnfe);
+                    if (log.isDebugEnabled()) {
+                        log.debug(ToStringUtil.classPathForCNFE(getClassLoader()));
+                    }
+                    throw createSAXException(cnfe);
                 } catch (Exception e) {
                     log.error(sm.getString("digester.error.begin"), e);
                     throw createSAXException(e);
@@ -1601,7 +1605,7 @@ public class Digester extends DefaultHandler2 {
 
 
     /**
-     * Add an "call method" rule for a method which accepts no arguments.
+     * Add a "call method" rule for a method which accepts no arguments.
      *
      * @param pattern Element matching pattern
      * @param methodName Method name to be called
@@ -1614,7 +1618,7 @@ public class Digester extends DefaultHandler2 {
     }
 
     /**
-     * Add an "call method" rule for the specified parameters.
+     * Add a "call method" rule for the specified parameters.
      *
      * @param pattern Element matching pattern
      * @param methodName Method name to be called
@@ -1737,7 +1741,7 @@ public class Digester extends DefaultHandler2 {
      * Clear the current contents of the object stack.
      * <p>
      * Calling this method <i>might</i> allow another document of the same type
-     * to be correctly parsed. However this method was not intended for this
+     * to be correctly parsed. However, this method was not intended for this
      * purpose. In general, a separate Digester object should be created for
      * each document to be parsed.
      */
@@ -1818,7 +1822,7 @@ public class Digester extends DefaultHandler2 {
      */
     public void push(Object object) {
 
-        if (stack.size() == 0) {
+        if (stack.isEmpty()) {
             root = object;
         }
         stack.push(object);
@@ -1933,7 +1937,7 @@ public class Digester extends DefaultHandler2 {
      * @return the new exception
      */
     public SAXException createSAXException(String message, Exception e) {
-        if ((e != null) && (e instanceof InvocationTargetException)) {
+        if ((e instanceof InvocationTargetException)) {
             Throwable t = e.getCause();
             if (t instanceof VirtualMachineError) {
                 throw (VirtualMachineError) t;

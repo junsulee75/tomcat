@@ -27,7 +27,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 /**
  * This helper class may be used to do sophisticated redirection of
  * System.out and System.err on a per Thread basis.
- *
  * A stack is implemented per Thread so that nested startCapture
  * and stopCapture can be used.
  *
@@ -79,7 +78,7 @@ public class SystemLogHandler extends PrintStream {
      * Start capturing thread's output.
      */
     public static void startCapture() {
-        CaptureLog log = null;
+        CaptureLog log;
         if (!reuse.isEmpty()) {
             try {
                 log = reuse.remove();

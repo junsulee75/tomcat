@@ -18,10 +18,9 @@ package org.apache.catalina.filters;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -35,10 +34,12 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.catalina.Globals;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.http.RequestUtil;
 import org.apache.tomcat.util.http.ResponseUtil;
+import org.apache.tomcat.util.http.parser.MediaType;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
@@ -75,6 +76,7 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public class CorsFilter extends GenericFilter {
 
+    @Serial
     private static final long serialVersionUID = 1L;
     private static final StringManager sm = StringManager.getManager(CorsFilter.class);
 
@@ -127,13 +129,9 @@ public class CorsFilter extends GenericFilter {
     @Override
     public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse,
             final FilterChain filterChain) throws IOException, ServletException {
-        if (!(servletRequest instanceof HttpServletRequest) || !(servletResponse instanceof HttpServletResponse)) {
+        if (!(servletRequest instanceof HttpServletRequest request) || !(servletResponse instanceof HttpServletResponse response)) {
             throw new ServletException(sm.getString("corsFilter.onlyHttp"));
         }
-
-        // Safe to downcast at this point.
-        HttpServletRequest request = (HttpServletRequest) servletRequest;
-        HttpServletResponse response = (HttpServletResponse) servletResponse;
 
         // Determines the CORS request type.
         CorsFilter.CORSRequestType requestType = checkRequestType(request);
@@ -350,7 +348,7 @@ public class CorsFilter extends GenericFilter {
         response.resetBuffer();
 
         if (log.isDebugEnabled()) {
-            sm.getString("corsFilter.invalidRequest", origin, method, accessControlRequestHeaders);
+            log.debug(sm.getString("corsFilter.invalidRequest", origin, method, accessControlRequestHeaders));
         }
     }
 
@@ -400,14 +398,14 @@ public class CorsFilter extends GenericFilter {
         // Local copy to avoid concurrency issues if getExposedHeaders()
         // is overridden.
         Collection<String> exposedHeaders = getExposedHeaders();
-        if (exposedHeaders != null && exposedHeaders.size() > 0) {
+        if (exposedHeaders != null && !exposedHeaders.isEmpty()) {
             String exposedHeadersString = join(exposedHeaders, ",");
             response.addHeader(RESPONSE_HEADER_ACCESS_CONTROL_EXPOSE_HEADERS, exposedHeadersString);
         }
 
         if ("OPTIONS".equals(method)) {
             // For an OPTIONS request, the response will vary based on the
-            // value or absence of the following headers. Hence they need be be
+            // value or absence of the following headers. Hence, they need to be
             // included in the Vary header.
             ResponseUtil.addVaryFieldName(response, REQUEST_HEADER_ACCESS_CONTROL_REQUEST_METHOD);
             ResponseUtil.addVaryFieldName(response, REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS);
@@ -536,71 +534,44 @@ public class CorsFilter extends GenericFilter {
      * @return the CORS type
      */
     protected CORSRequestType checkRequestType(final HttpServletRequest request) {
-        CORSRequestType requestType = CORSRequestType.INVALID_CORS;
         if (request == null) {
             throw new IllegalArgumentException(sm.getString("corsFilter.nullRequest"));
         }
         String originHeader = request.getHeader(REQUEST_HEADER_ORIGIN);
-        // Section 6.1.1 and Section 6.2.1
-        if (originHeader != null) {
-            if (originHeader.isEmpty()) {
-                requestType = CORSRequestType.INVALID_CORS;
-            } else if (!RequestUtil.isValidOrigin(originHeader)) {
-                requestType = CORSRequestType.INVALID_CORS;
-            } else if (RequestUtil.isSameOrigin(request, originHeader)) {
-                return CORSRequestType.NOT_CORS;
-            } else {
-                String method = request.getMethod();
-                if (method != null) {
-                    if ("OPTIONS".equals(method)) {
-                        String accessControlRequestMethodHeader =
-                                request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_METHOD);
-                        if (accessControlRequestMethodHeader != null && !accessControlRequestMethodHeader.isEmpty()) {
-                            requestType = CORSRequestType.PRE_FLIGHT;
-                        } else if (accessControlRequestMethodHeader != null &&
-                                accessControlRequestMethodHeader.isEmpty()) {
-                            requestType = CORSRequestType.INVALID_CORS;
-                        } else {
-                            requestType = CORSRequestType.ACTUAL;
-                        }
-                    } else if ("GET".equals(method) || "HEAD".equals(method)) {
-                        requestType = CORSRequestType.SIMPLE;
-                    } else if ("POST".equals(method)) {
-                        String mediaType = getMediaType(request.getContentType());
-                        if (mediaType != null) {
-                            if (SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES.contains(mediaType)) {
-                                requestType = CORSRequestType.SIMPLE;
-                            } else {
-                                requestType = CORSRequestType.ACTUAL;
-                            }
-                        }
-                    } else {
-                        requestType = CORSRequestType.ACTUAL;
+        if (originHeader == null) {
+            return CORSRequestType.NOT_CORS;
+        }
+        if (originHeader.isEmpty() || !RequestUtil.isValidOrigin(originHeader)) {
+            return CORSRequestType.INVALID_CORS;
+        }
+        if(RequestUtil.isSameOrigin(request, originHeader)) {
+            return CORSRequestType.NOT_CORS;
+        }
+        String method = request.getMethod();
+        if (method == null) {
+            return CORSRequestType.INVALID_CORS;
+        }
+        switch (method) {
+            case "OPTIONS":
+                String accessControlRequestMethodHeader = request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_METHOD);
+                if (accessControlRequestMethodHeader != null) {
+                    if (accessControlRequestMethodHeader.isEmpty()) {
+                        return CORSRequestType.INVALID_CORS;
                     }
+                    return CORSRequestType.PRE_FLIGHT;
                 }
-            }
-        } else {
-            requestType = CORSRequestType.NOT_CORS;
+                return CORSRequestType.ACTUAL;
+            case "GET":
+            case "HEAD":
+                return CORSRequestType.SIMPLE;
+            case "POST":
+                String mediaType = MediaType.parseMediaTypeOnly(request.getContentType());
+                if (mediaType == null || SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES.contains(mediaType)) {
+                    return CORSRequestType.SIMPLE;
+                }
+                break;
         }
-
-        return requestType;
-    }
-
-
-    /**
-     * Return the lower case, trimmed value of the media type from the content type.
-     */
-    private String getMediaType(String contentType) {
-        if (contentType == null) {
-            return null;
-        }
-        String result = contentType.toLowerCase(Locale.ENGLISH);
-        int firstSemiColonIndex = result.indexOf(';');
-        if (firstSemiColonIndex > -1) {
-            result = result.substring(0, firstSemiColonIndex);
-        }
-        result = result.trim();
-        return result;
+        return CORSRequestType.ACTUAL;
     }
 
     /**
@@ -695,17 +666,15 @@ public class CorsFilter extends GenericFilter {
     private Set<String> parseStringToSet(final String data) {
         String[] splits;
 
-        if (data != null && data.length() > 0) {
+        if (data != null && !data.isEmpty()) {
             splits = data.split(",");
         } else {
             splits = new String[] {};
         }
 
         Set<String> set = new HashSet<>();
-        if (splits.length > 0) {
-            for (String split : splits) {
-                set.add(split.trim());
-            }
+        for (String split : splits) {
+            set.add(split.trim());
         }
 
         return set;
@@ -796,6 +765,7 @@ public class CorsFilter extends GenericFilter {
      * Log objects are not Serializable but this Filter is because it extends GenericFilter. Tomcat won't serialize a
      * Filter but in case something else does...
      */
+    @Serial
     private void readObject(ObjectInputStream ois) throws ClassNotFoundException, IOException {
         ois.defaultReadObject();
         log = LogFactory.getLog(CorsFilter.class);
@@ -920,8 +890,8 @@ public class CorsFilter extends GenericFilter {
      *
      * @see <a href="http://www.w3.org/TR/cors/#terminology" >http://www.w3.org/TR/cors/#terminology</a>
      */
-    public static final Collection<String> SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES = Collections.unmodifiableSet(
-            new HashSet<>(Arrays.asList("application/x-www-form-urlencoded", "multipart/form-data", "text/plain")));
+    public static final Collection<String> SIMPLE_HTTP_REQUEST_CONTENT_TYPE_VALUES =
+        Set.of(Globals.CONTENT_TYPE_FORM_URL_ENCODING, "multipart/form-data", "text/plain");
 
     // ------------------------------------------------ Configuration Defaults
     /**

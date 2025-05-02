@@ -115,6 +115,27 @@
       By default, DNS lookups are disabled.</p>
     </attribute>
 
+    <attribute name="encodedReverseSolidusHandling" required="false">
+      <p>When set to <code>reject</code> request paths containing a
+      <code>%5c</code> sequence will be rejected with a 400 response. When set
+      to <code>decode</code> request paths containing a <code>%5c</code>
+      sequence will have that sequence decoded to <code>\</code> at the same
+      time other <code>%nn</code> sequences are decoded. When set to
+      <code>passthrough</code> request paths containing a <code>%5c</code>
+      sequence will be processed with the <code>%5c</code> sequence unchanged.
+      </p>
+      <p>When set to <code>decoded</code>, the <strong>allowBackslash</strong>
+      attribute will be applied after decoding.
+      </p>
+      <p>If <code>passthrough</code> is used then it is the application's
+      responsibility to perform any further <code>%nn</code> decoding required.
+      Any <code>%25</code> sequences (encoded <code>%</code>) in the request
+      path with also be processed with the <code>%25</code> sequence unchanged
+      to avoid potential corruption and/or decoding failure when the path is
+      subsequently <code>%nn</code> decoded by the application.</p>
+      <p>If not specified, the default value is <code>decode</code>.</p>
+    </attribute>
+
     <attribute name="encodedSolidusHandling" required="false">
       <p>When set to <code>reject</code> request paths containing a
       <code>%2f</code> sequence will be rejected with a 400 response. When set
@@ -123,7 +144,14 @@
       time other <code>%nn</code> sequences are decoded. When set to
       <code>passthrough</code> request paths containing a <code>%2f</code>
       sequence will be processed with the <code>%2f</code> sequence unchanged.
-      If not specified the default value is <code>reject</code>.</p>
+      </p>
+      <p>If <code>passthrough</code> is used then it is the application's
+      responsibility to perform any further <code>%nn</code> decoding required.
+      Any <code>%25</code> sequences (encoded <code>%</code>) in the request
+      path with also be processed with the <code>%25</code> sequence unchanged
+      to avoid potential corruption and/or decoding failure when the path is
+      subsequently <code>%nn</code> decoded by the application.</p>
+      <p>If not specified the default value is <code>reject</code>.</p>
     </attribute>
 
     <attribute name="enforceEncodingInGetWriter" required="false">
@@ -416,7 +444,8 @@
 
     <attribute name="connectionUploadTimeout" required="false">
       <p>Specifies the timeout, in milliseconds, to use while a data upload is
-      in progress. This only takes effect if
+      in progress. If not specified the default
+      value is 300000 (i.e. 300 seconds). This only takes effect if
       <strong>disableUploadTimeout</strong> is set to <code>false</code>.
       </p>
     </attribute>
@@ -792,19 +821,19 @@
       </attribute>
       <attribute name="socket.performanceConnectionTime" required="false">
         <p>(int)The first value for the performance settings. See
-        <a href="http://docs.oracle.com/javase/7/docs/api/java/net/Socket.html#setPerformancePreferences(int,%20int,%20int)">Socket Performance Options</a>.
+        <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/Socket.html#setPerformancePreferences(int,int,int)">Socket Performance Options</a>.
         All three performance attributes must be set else the JVM defaults will
         be used for all three.</p>
       </attribute>
       <attribute name="socket.performanceLatency" required="false">
         <p>(int)The second value for the performance settings. See
-        <a href="http://docs.oracle.com/javase/7/docs/api/java/net/Socket.html#setPerformancePreferences(int,%20int,%20int)">Socket Performance Options</a>.
+        <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/Socket.html#setPerformancePreferences(int,int,int)">Socket Performance Options</a>.
         All three performance attributes must be set else the JVM defaults will
         be used for all three.</p>
       </attribute>
       <attribute name="socket.performanceBandwidth" required="false">
         <p>(int)The third value for the performance settings. See
-        <a href="http://docs.oracle.com/javase/7/docs/api/java/net/Socket.html#setPerformancePreferences(int,%20int,%20int)">Socket Performance Options</a>.
+        <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/Socket.html#setPerformancePreferences(int,int,int)">Socket Performance Options</a>.
         All three performance attributes must be set else the JVM defaults will
         be used for all three.</p>
       </attribute>
@@ -1427,10 +1456,11 @@
       <p>The name of the truststore provider to be used for the server
       certificate. The default is the value of the
       <code>javax.net.ssl.trustStoreProvider</code> system property. If
-      that property is null, the value of <code>keystoreProvider</code> is used
-      as the default. If neither this attribute, the default system property nor
-      <code>keystoreProvider</code> is set, the list of registered providers is
-      traversed in preference order and the first provider that supports the
+      that property is null and a single certificate has been configured for
+      this TLS virtual host then default will be the value of
+      <code>keystoreProvider</code> of the single certificate. If none of these
+      identify a default, the list of registered providers is traversed in
+      preference order and the first provider that supports the
       <code>truststoreType</code> is used.
       </p>
     </attribute>
@@ -1538,8 +1568,7 @@
     <attribute name="certificateKeystorePassword" required="false">
       <p>JSSE only.</p>
       <p>The password to use to access the keystore containing the server&apos;s
-      private key and certificate. If not specified, a default of
-      <code>changeit</code> will be used.</p>
+      private key and certificate.</p>
     </attribute>
 
     <attribute name="certificateKeystorePasswordFile" required="false">

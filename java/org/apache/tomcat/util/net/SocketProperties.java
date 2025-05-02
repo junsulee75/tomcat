@@ -152,7 +152,7 @@ public class SocketProperties {
 
     /**
      * Performance preferences according to
-     * http://docs.oracle.com/javase/1.5.0/docs/api/java/net/Socket.html#setPerformancePreferences(int,%20int,%20int)
+     * <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/Socket.html#setPerformancePreferences(int,int,int)">setPerformancePreferences</a>
      * All three performance attributes must be set or the JVM defaults will be
      * used.
      */
@@ -160,7 +160,7 @@ public class SocketProperties {
 
     /**
      * Performance preferences according to
-     * http://docs.oracle.com/javase/1.5.0/docs/api/java/net/Socket.html#setPerformancePreferences(int,%20int,%20int)
+     * <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/Socket.html#setPerformancePreferences(int,int,int)">setPerformancePreferences</a>
      * All three performance attributes must be set or the JVM defaults will be
      * used.
      */
@@ -168,7 +168,7 @@ public class SocketProperties {
 
     /**
      * Performance preferences according to
-     * http://docs.oracle.com/javase/1.5.0/docs/api/java/net/Socket.html#setPerformancePreferences(int,%20int,%20int)
+     * <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.base/java/net/Socket.html#setPerformancePreferences(int,int,int)">setPerformancePreferences</a>
      * All three performance attributes must be set or the JVM defaults will be
      * used.
      */
@@ -481,7 +481,7 @@ public class SocketProperties {
                 return 0;
             } else {
                 long actualBufferPoolSize = bufferPoolSize;
-                long poolSize = 0;
+                long poolSize;
                 if (actualBufferPoolSize == -2) {
                     long maxMemory = Runtime.getRuntime().maxMemory();
                     if (maxMemory > Integer.MAX_VALUE) {

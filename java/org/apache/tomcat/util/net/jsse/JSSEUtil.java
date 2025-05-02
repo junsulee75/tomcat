@@ -129,13 +129,13 @@ public class JSSEUtil extends SSLUtilBase {
                         implementedProtocols.add(protocol);
                     }
 
-                    if (implementedProtocols.size() == 0) {
+                    if (implementedProtocols.isEmpty()) {
                         log.warn(sm.getString("jsseUtil.noDefaultProtocols"));
                     }
 
                     String[] implementedCipherSuiteArray = context.getSupportedSSLParameters().getCipherSuites();
                     // The IBM JRE will accept cipher suites names SSL_xxx or TLS_xxx but
-                    // only returns the SSL_xxx form for supported cipher suites. Therefore
+                    // only returns the SSL_xxx form for supported cipher suites. Therefore,
                     // need to filter the requested cipher suites using both forms with an
                     // IBM JRE.
                     if (JreVendor.IS_IBM_JVM) {

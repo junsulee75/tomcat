@@ -19,6 +19,7 @@ package org.apache.tomcat.websocket.server;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.Principal;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -145,15 +146,13 @@ public class WsHandshakeRequest implements HandshakeRequest {
             port = 80;
         }
 
-        if ("http".equals(scheme)) {
-            uri.append("ws");
-        } else if ("https".equals(scheme)) {
-            uri.append("wss");
-        } else if ("wss".equals(scheme) || "ws".equals(scheme)) {
-            uri.append(scheme);
-        } else {
-            // Should never happen
-            throw new IllegalArgumentException(sm.getString("wsHandshakeRequest.unknownScheme", scheme));
+        switch (scheme) {
+            case "http" -> uri.append("ws");
+            case "https" -> uri.append("wss");
+            case "wss", "ws" -> uri.append(scheme);
+            case null, default ->
+                // Should never happen
+                throw new IllegalArgumentException(sm.getString("wsHandshakeRequest.unknownScheme", scheme));
         }
 
         uri.append("://");
@@ -178,5 +177,10 @@ public class WsHandshakeRequest implements HandshakeRequest {
             // Should never happen
             throw new IllegalArgumentException(sm.getString("wsHandshakeRequest.invalidUri", uri.toString()), e);
         }
+    }
+
+    @Override
+    public X509Certificate[] getUserX509CertificateChain() {
+        return (X509Certificate[]) request.getAttribute(Constants.CERTIFICATE_SERVLET_REQUEST_ATTRIBUTE);
     }
 }

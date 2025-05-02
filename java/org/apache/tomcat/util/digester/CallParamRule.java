@@ -121,17 +121,15 @@ public class CallParamRule extends Rule {
 
             param = attributes.getValue(attributeName);
 
-        } else if(fromStack) {
+        } else if (fromStack) {
 
             param = digester.peek(stackIndex);
 
             if (digester.log.isTraceEnabled()) {
-
-                StringBuilder sb = new StringBuilder("[CallParamRule]{");
-                sb.append(digester.match);
-                sb.append("} Save from stack; from stack?").append(fromStack);
-                sb.append("; object=").append(param);
-                digester.log.trace(sb.toString());
+                String sb = "[CallParamRule]{" + digester.match +
+                        "} Save from stack; from stack? " + true +
+                        "; object=" + param;
+                digester.log.trace(sb);
             }
         }
 
@@ -142,7 +140,7 @@ public class CallParamRule extends Rule {
         // if this CallParamRule is reused in subsequent nesting.
 
         if(param != null) {
-            Object parameters[] = (Object[]) digester.peekParams();
+            Object[] parameters = (Object[]) digester.peekParams();
             parameters[paramIndex] = param;
         }
     }
@@ -181,7 +179,7 @@ public class CallParamRule extends Rule {
     public void end(String namespace, String name) {
         if (bodyTextStack != null && !bodyTextStack.empty()) {
             // what we do now is push one parameter onto the top set of parameters
-            Object parameters[] = (Object[]) digester.peekParams();
+            Object[] parameters = (Object[]) digester.peekParams();
             parameters[paramIndex] = bodyTextStack.pop();
         }
     }
@@ -191,15 +189,8 @@ public class CallParamRule extends Rule {
      */
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("CallParamRule[");
-        sb.append("paramIndex=");
-        sb.append(paramIndex);
-        sb.append(", attributeName=");
-        sb.append(attributeName);
-        sb.append(", from stack=");
-        sb.append(fromStack);
-        sb.append(']');
-        return sb.toString();
+        return "CallParamRule[" + "paramIndex=" + paramIndex + ", attributeName=" + attributeName +
+                ", from stack=" + fromStack + ']';
     }
 
 

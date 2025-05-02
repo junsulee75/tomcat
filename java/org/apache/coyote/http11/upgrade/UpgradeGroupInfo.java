@@ -23,16 +23,16 @@ import java.util.concurrent.atomic.LongAdder;
 import org.apache.tomcat.util.modeler.BaseModelMBean;
 
 /**
- *  This aggregates the data collected from each UpgradeInfo instance.
+ * This aggregates the data collected from each UpgradeInfo instance.
  */
 public class UpgradeGroupInfo extends BaseModelMBean {
 
     private final Set<UpgradeInfo> upgradeInfos = (new ConcurrentHashMap<UpgradeInfo,Boolean>()).keySet(Boolean.TRUE);
 
-    private LongAdder deadBytesReceived = new LongAdder();
-    private LongAdder deadBytesSent = new LongAdder();
-    private LongAdder deadMsgsReceived = new LongAdder();
-    private LongAdder deadMsgsSent = new LongAdder();
+    private final LongAdder deadBytesReceived = new LongAdder();
+    private final LongAdder deadBytesSent = new LongAdder();
+    private final LongAdder deadMsgsReceived = new LongAdder();
+    private final LongAdder deadMsgsSent = new LongAdder();
 
 
     public void addUpgradeInfo(UpgradeInfo ui) {
@@ -59,6 +59,7 @@ public class UpgradeGroupInfo extends BaseModelMBean {
         }
         return bytes;
     }
+
     public void setBytesReceived(long bytesReceived) {
         deadBytesReceived.reset();
         if (bytesReceived != 0) {
@@ -77,6 +78,7 @@ public class UpgradeGroupInfo extends BaseModelMBean {
         }
         return bytes;
     }
+
     public void setBytesSent(long bytesSent) {
         deadBytesSent.reset();
         if (bytesSent != 0) {
@@ -95,6 +97,7 @@ public class UpgradeGroupInfo extends BaseModelMBean {
         }
         return msgs;
     }
+
     public void setMsgsReceived(long msgsReceived) {
         deadMsgsReceived.reset();
         if (msgsReceived != 0) {
@@ -113,6 +116,7 @@ public class UpgradeGroupInfo extends BaseModelMBean {
         }
         return msgs;
     }
+
     public void setMsgsSent(long msgsSent) {
         deadMsgsSent.reset();
         if (msgsSent != 0) {

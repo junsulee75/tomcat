@@ -44,7 +44,7 @@ public class Import {
         String language = Utils.getLanguage(f.getName());
 
         // Skip the original
-        if (language.length() == 0) {
+        if (language.isEmpty()) {
             // Comment this line out if the originals need to be imported.
             return;
         }
@@ -61,13 +61,14 @@ public class Import {
             String key = (String) objKey;
             String value = props.getProperty(key);
             // Skip untranslated values
-            if (value.trim().length() == 0) {
+            if (value.trim().isEmpty()) {
                 continue;
             }
             CompositeKey cKey = new CompositeKey(key);
 
             if (!cKey.pkg.equals(currentPkg)) {
                 currentPkg = cKey.pkg;
+                currentGroup = "zzz";
                 if (w != null) {
                     w.close();
                 }
@@ -75,6 +76,7 @@ public class Import {
                 FileOutputStream fos = new FileOutputStream(outFile);
                 w = new OutputStreamWriter(fos, StandardCharsets.UTF_8);
                 org.apache.tomcat.buildutil.Utils.insertLicense(w);
+                Utils.insertEditInstructions(w);
             }
 
             if (!currentGroup.equals(cKey.group)) {

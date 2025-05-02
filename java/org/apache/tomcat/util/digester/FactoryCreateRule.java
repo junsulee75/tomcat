@@ -35,7 +35,7 @@ public class FactoryCreateRule extends Rule {
     // ----------------------------------------------------------- Fields
 
     /** Should exceptions thrown by the factory be ignored? */
-    private boolean ignoreCreateExceptions;
+    private final boolean ignoreCreateExceptions;
     /** Stock to manage */
     private ArrayStack<Boolean> exceptionIgnoredStack;
 
@@ -66,7 +66,7 @@ public class FactoryCreateRule extends Rule {
      * as required based on the attributes specified in the matched XML
      * element.
      */
-    protected ObjectCreationFactory creationFactory = null;
+    protected ObjectCreationFactory creationFactory;
 
 
     // --------------------------------------------------------- Public Methods
@@ -127,7 +127,7 @@ public class FactoryCreateRule extends Rule {
     public void end(String namespace, String name) throws Exception {
 
         // check if object was created
-        // this only happens if an exception was thrown and we're ignoring them
+        // this only happens if an exception was thrown, and we're ignoring them
         if (
                 ignoreCreateExceptions &&
                 exceptionIgnoredStack != null &&

@@ -100,8 +100,10 @@ public abstract class PojoMessageHandlerWholeBase<T> extends PojoMessageHandlerB
         Object result = null;
         try {
             result = method.invoke(pojo, parameters);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            handlePojoMethodException(e);
+        } catch (InvocationTargetException e) {
+            handlePojoMethodInvocationTargetException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
         }
         processResult(result);
     }
@@ -116,7 +118,7 @@ public abstract class PojoMessageHandlerWholeBase<T> extends PojoMessageHandlerB
                 try {
                     instanceManager.destroyInstance(decoder);
                 } catch (IllegalAccessException | InvocationTargetException e) {
-                    log.warn(sm.getString("pojoMessageHandlerWholeBase.decodeDestoryFailed", decoder.getClass()), e);
+                    log.warn(sm.getString("pojoMessageHandlerWholeBase.decodeDestroyFailed", decoder.getClass()), e);
                 }
             }
         }

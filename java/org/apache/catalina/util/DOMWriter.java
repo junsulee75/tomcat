@@ -63,13 +63,25 @@ public class DOMWriter {
             case Node.ELEMENT_NODE:
                 out.print('<');
                 out.print(node.getLocalName());
-                Attr attrs[] = sortAttributes(node.getAttributes());
+                Attr[] attrs = sortAttributes(node.getAttributes());
+                boolean xmlns = false;
                 for (Attr attr : attrs) {
+                    if ("xmlns".equals(attr.getPrefix())) {
+                        // Skip namespace prefixes as they are removed
+                        continue;
+                    }
                     out.print(' ');
                     out.print(attr.getLocalName());
-
+                    if ("xmlns".equals(attr.getLocalName())) {
+                        xmlns = true;
+                    }
                     out.print("=\"");
                     out.print(Escape.xml("", true, attr.getNodeValue()));
+                    out.print('"');
+                }
+                if (!xmlns && node.getNamespaceURI() != null) {
+                    out.print(" xmlns=\"");
+                    out.print(Escape.xml(node.getNamespaceURI()));
                     out.print('"');
                 }
                 out.print('>');
@@ -88,7 +100,7 @@ public class DOMWriter {
 
             // print text
             case Node.TEXT_NODE:
-                out.print(Escape.xml("", true, node.getNodeValue()));
+                out.print(Escape.xml("", false, node.getNodeValue()));
                 break;
 
             // print processing instruction
@@ -97,7 +109,7 @@ public class DOMWriter {
                 out.print(node.getLocalName());
 
                 String data = node.getNodeValue();
-                if (data != null && data.length() > 0) {
+                if (data != null && !data.isEmpty()) {
                     out.print(' ');
                     out.print(data);
                 }
@@ -140,17 +152,15 @@ public class DOMWriter {
         }
 
         int len = attrs.getLength();
-        Attr array[] = new Attr[len];
+        Attr[] array = new Attr[len];
         for (int i = 0; i < len; i++) {
             array[i] = (Attr) attrs.item(i);
         }
         for (int i = 0; i < len - 1; i++) {
-            String name = null;
-            name = array[i].getLocalName();
+            String name = array[i].getLocalName();
             int index = i;
             for (int j = i + 1; j < len; j++) {
-                String curName = null;
-                curName = array[j].getLocalName();
+                String curName = array[j].getLocalName();
                 if (curName.compareTo(name) < 0) {
                     name = curName;
                     index = j;

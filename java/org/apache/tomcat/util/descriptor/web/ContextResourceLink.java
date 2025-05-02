@@ -17,6 +17,7 @@
 package org.apache.tomcat.util.descriptor.web;
 
 
+import java.io.Serial;
 
 /**
  * Representation of a resource link for a web application, as
@@ -28,6 +29,7 @@ package org.apache.tomcat.util.descriptor.web;
  */
 public class ContextResourceLink extends ResourceBase {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     // ------------------------------------------------------------- Properties
@@ -111,12 +113,9 @@ public class ContextResourceLink extends ResourceBase {
             return false;
         }
         if (global == null) {
-            if (other.global != null) {
-                return false;
-            }
-        } else if (!global.equals(other.global)) {
-            return false;
+            return other.global == null;
+        } else {
+            return global.equals(other.global);
         }
-        return true;
     }
 }

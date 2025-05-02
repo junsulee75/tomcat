@@ -90,7 +90,7 @@ public class OpenSSLCipherConfigurationParser {
      */
     private static final String HIGH = "HIGH";
     /**
-     * 'medium' encryption cipher suites, currently some of those using 128 bit encryption.
+     * 'medium' encryption cipher suites, currently some of those using 128-bit encryption.
      */
     private static final String MEDIUM = "MEDIUM";
     /**
@@ -173,7 +173,7 @@ public class OpenSSLCipherConfigurationParser {
      */
     private static final String EECDH = "EECDH";
     /**
-     * Cipher suitesusing ECDH key exchange, including anonymous, ephemeral and fixed ECDH.
+     * Cipher suites using ECDH key exchange, including anonymous, ephemeral and fixed ECDH.
      */
     private static final String ECDH = "ECDH";
     /**
@@ -237,15 +237,15 @@ public class OpenSSLCipherConfigurationParser {
      */
     private static final String ADH = "ADH";
     /**
-     * Cipher suites using 128 bit AES.
+     * Cipher suites using 128-bit AES.
      */
     private static final String AES128 = "AES128";
     /**
-     * Cipher suites using 256 bit AES.
+     * Cipher suites using 256-bit AES.
      */
     private static final String AES256 = "AES256";
     /**
-     * Cipher suites using either 128 or 256 bit AES.
+     * Cipher suites using either 128 or 256-bit AES.
      */
     private static final String AES = "AES";
     /**
@@ -350,7 +350,7 @@ public class OpenSSLCipherConfigurationParser {
      */
     private static final String aGOST94 = "aGOST94";
     /**
-     * Cipher suites using using VKO 34.10 key exchange, specified in the RFC 4357.
+     * Cipher suites using VKO 34.10 key exchange, specified in the RFC 4357.
      */
     private static final String kGOST = "kGOST";
     /**
@@ -645,7 +645,7 @@ public class OpenSSLCipherConfigurationParser {
         moveToEnd(result, filterByKeyExchange(result, Collections.singleton(KeyExchange.RSA)));
         moveToEnd(result, filterByKeyExchange(result, Collections.singleton(KeyExchange.PSK)));
 
-        /* RC4 is sort-of broken -- move the the end */
+        /* RC4 is sort-of broken -- move to the end */
         moveToEnd(result, filterByEncryption(result, Collections.singleton(Encryption.RC4)));
         return strengthSort(result);
     }
@@ -723,20 +723,20 @@ public class OpenSSLCipherConfigurationParser {
                     try {
                         Class<?> openSSLLibraryClass = Class.forName("org.apache.tomcat.util.net.openssl.panama.OpenSSLLibrary");
                         @SuppressWarnings("unchecked")
-                        List<String> cipherList = (List<String>) openSSLLibraryClass.getMethod("findCiphers").invoke(null, elements[0]);
+                        List<String> cipherList = (List<String>) openSSLLibraryClass.getMethod("findCiphers", String.class).invoke(null, elements[0]);
                         // Replace the original list with the profile contents
                         elements = cipherList.toArray(new String[0]);
                     } catch (Throwable t) {
-                        t = ExceptionUtils.unwrapInvocationTargetException(t);
-                        ExceptionUtils.handleThrowable(t);
-                        log.error(sm.getString("opensslCipherConfigurationParser.unknownProfile", elements[0]), t);
+                        Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
+                        ExceptionUtils.handleThrowable(throwable);
+                        log.error(sm.getString("opensslCipherConfigurationParser.unknownProfile", elements[0]), throwable);
                     }
                 } else {
                     // OpenSSL is not available
                     log.error(sm.getString("opensslCipherConfigurationParser.unknownProfile", elements[0]));
                 }
             } else {
-                // No way to resolve using OpenSSL, log an info about this
+                // No way to resolve using OpenSSL, log an info about this,
                 // but it might still work if using tomcat-native
                 log.info(sm.getString("opensslCipherConfigurationParser.unknownProfile", elements[0]));
             }
@@ -838,7 +838,7 @@ public class OpenSSLCipherConfigurationParser {
             // Not an OpenSSL cipher name
             return null;
         }
-        Cipher cipher = ciphers.get(0);
+        Cipher cipher = ciphers.getFirst();
         // Each Cipher always has at least one JSSE name
         return cipher.getJsseNames().iterator().next();
     }
@@ -860,13 +860,13 @@ public class OpenSSLCipherConfigurationParser {
             }
             builder.append(separator);
         }
-        return builder.toString().substring(0, builder.length() - 1);
+        return builder.substring(0, builder.length() - 1);
     }
 
     public static void usage() {
-        System.out.println("Usage: java " + OpenSSLCipherConfigurationParser.class.getName() + " [options] cipherspec");
+        System.out.println("Usage: java " + OpenSSLCipherConfigurationParser.class.getName() + " [options] cipher spec");
         System.out.println();
-        System.out.println("Displays the TLS cipher suites matching the cipherspec.");
+        System.out.println("Displays the TLS cipher suites matching the cipher spec.");
         System.out.println();
         System.out.println(" --help,");
         System.out.println(" -h          Print this help message");
@@ -912,7 +912,7 @@ public class OpenSSLCipherConfigurationParser {
         }
         Set<Cipher> ciphers = parse(cipherSpec);
         boolean first = true;
-        if(null != ciphers && 0 < ciphers.size()) {
+        if(!ciphers.isEmpty()) {
             for(Cipher cipher : ciphers)
             {
                 if(first) {

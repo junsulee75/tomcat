@@ -337,6 +337,8 @@
         remote (client) port (<code>xxx=remote</code>)</li>
     <li><b><code>%{xxx}t</code></b> write timestamp at the end of the request formatted using the
         enhanced SimpleDateFormat pattern <code>xxx</code></li>
+    <li><b><code>%{xxx}L</code></b> write an identifier associated with the request where the only valid value for
+        <code>xxx</code> is <code>c</code> for connection.</li>
     <li><b><code>%{xxx}T</code></b> write time taken to process the request using unit <code>xxx</code>
         where valid units are <code>ns</code> for nanoseconds, <code>us</code> for microseconds,
         <code>ms</code> for milliseconds, <code>fracsec</code> for fractional seconds, or <code>s</code> for whole seconds.
@@ -477,6 +479,7 @@
     <ul>
     <li><b><code>x-H(authType)</code></b>: getAuthType </li>
     <li><b><code>x-H(characterEncoding)</code></b>: getCharacterEncoding </li>
+    <li><b><code>x-H(connectionId)</code></b>: getServletConnection().getConnectionId</li>
     <li><b><code>x-H(contentLength)</code></b>: getContentLength </li>
     <li><b><code>x-H(locale)</code></b>:  getLocale</li>
     <li><b><code>x-H(protocol)</code></b>: getProtocol </li>
@@ -1193,7 +1196,7 @@
         Internal proxies that appear in the <strong>remoteIpHeader</strong> will
         be trusted and will not appear in the <strong>proxiesHeader</strong>
         value. If not specified the default value of <code>
-        10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.6[4-9]{1}\.\d{1,3}\.\d{1,3}|100\.[7-9]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.1[0-1]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.12[0-7]{1}\.\d{1,3}\.\d{1,3}|172\.1[6-9]{1}\.\d{1,3}\.\d{1,3}|172\.2[0-9]{1}\.\d{1,3}\.\d{1,3}|172\.3[0-1]{1}\.\d{1,3}\.\d{1,3}|0:0:0:0:0:0:0:1
+        10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|100\.6[4-9]{1}\.\d{1,3}\.\d{1,3}|100\.[7-9]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.1[0-1]{1}\d{1}\.\d{1,3}\.\d{1,3}|100\.12[0-7]{1}\.\d{1,3}\.\d{1,3}|172\.1[6-9]{1}\.\d{1,3}\.\d{1,3}|172\.2[0-9]{1}\.\d{1,3}\.\d{1,3}|172\.3[0-1]{1}\.\d{1,3}\.\d{1,3}|0:0:0:0:0:0:0:1|::1|fe[89ab]\p{XDigit}:.*|"f[cd]\p{XDigit}{2}+:.*
         </code> will be used.</p>
       </attribute>
 
@@ -1448,7 +1451,7 @@
         it appears to be a CORS preflight request; it is mapped to a web
         application that has the <a href="filter.html#CORS_Filter">CORS
         Filter</a> enabled; and the request matches the URLPatterns for the CORS
-        fitler mapper.
+        filter mapper.
         <code>always</code> means that all requests that appear to be CORS
         preflight requests will bypass authentication. If not set, the default
         value is <code>never</code>.</p>
@@ -1608,7 +1611,7 @@
         it appears to be a CORS preflight request; it is mapped to a web
         application that has the <a href="filter.html#CORS_Filter">CORS
         Filter</a> enabled; and the request matches the URLPatterns for the CORS
-        fitler mapper.
+        filter mapper.
         <code>always</code> means that all requests that appear to be CORS
         preflight requests will bypass authentication. If not set, the default
         value is <code>never</code>.</p>
@@ -1791,7 +1794,7 @@
         it appears to be a CORS preflight request; it is mapped to a web
         application that has the <a href="filter.html#CORS_Filter">CORS
         Filter</a> enabled; and the request matches the URLPatterns for the CORS
-        fitler mapper.
+        filter mapper.
         <code>always</code> means that all requests that appear to be CORS
         preflight requests will bypass authentication. If not set, the default
         value is <code>never</code>.</p>
@@ -1940,7 +1943,7 @@
         it appears to be a CORS preflight request; it is mapped to a web
         application that has the <a href="filter.html#CORS_Filter">CORS
         Filter</a> enabled; and the request matches the URLPatterns for the CORS
-        fitler mapper.
+        filter mapper.
         <code>always</code> means that all requests that appear to be CORS
         preflight requests will bypass authentication. If not set, the default
         value is <code>never</code>.</p>
@@ -2056,7 +2059,7 @@
         it appears to be a CORS preflight request and the web application the
         request maps to has the <a href="filter.html#CORS_Filter">CORS
         Filter</a> enabled; and the request matches the URLPatterns for the CORS
-        fitler mapper.
+        filter mapper.
         means that all requests that appear to be CORS preflight requests will
         bypass authentication. If not set, the default value is
         <code>never</code>.</p>
@@ -2664,6 +2667,49 @@
         for the Semaphore in the same order they were received. Has no effect if
         <strong>semaphoreBlockOnAcquire</strong> is <code>false</code>. If not
         specified, the default value of <code>true</code> will be used.</p>
+      </attribute>
+
+    </attributes>
+
+  </subsection>
+
+</section>
+
+<section name="Parameter Limit Valve">
+
+  <subsection name="Introduction">
+
+    <p>The <strong>Parameter Limit Valve</strong> is used to limit the number of parameters allowed in HTTP requests
+    overriding the Connector's value. The valve can be configured with specific limits for certain URL patterns.
+    Requests exceeding the defined parameter limits will result in an HTTP 400 Bad Request error.</p>
+
+  </subsection>
+
+  <subsection name="Attributes">
+
+    <p>The <strong>Parameter Limit Valve</strong> supports the following
+    configuration attributes:</p>
+
+    <attributes>
+
+      <attribute name="className" required="true">
+        <p>Java class name of the implementation to use.  This MUST be set to
+        <strong>org.apache.catalina.valves.ParameterLimitValve</strong>.</p>
+      </attribute>
+
+      <attribute name="resourcePath" required="false">
+        <p>A file consisting of line-separated URL patterns and their respective parameter limits.
+        Each entry should follow the format <code>urlPattern=limit</code>.
+        The valve will apply the limit defined for a URL pattern when a request matches that pattern.
+        If no pattern matches, the Connector's limit will be used.
+        For example:
+          <code>
+            /api/.*=100
+            /admin/.*=50
+          </code>
+        Default value: <code>parameter_limit.config</code>.
+        It must be placed in the Host configuration folder or in the WEB-INF folder of the web application.
+        </p>
       </attribute>
 
     </attributes>

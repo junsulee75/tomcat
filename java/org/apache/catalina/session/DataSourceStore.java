@@ -37,6 +37,8 @@ import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import org.apache.catalina.Container;
+import org.apache.catalina.Server;
+import org.apache.catalina.Service;
 import org.apache.catalina.Session;
 import org.apache.juli.logging.Log;
 
@@ -325,11 +327,9 @@ public class DataSourceStore extends StoreBase {
      * @param expiredOnly flag, whether only keys of expired sessions should be returned
      *
      * @return array containing the list of session IDs
-     *
-     * @exception IOException if an input/output error occurred
      */
-    private String[] keys(boolean expiredOnly) throws IOException {
-        String keys[] = null;
+    private String[] keys(boolean expiredOnly) {
+        String[] keys = null;
         int numberOfTries = 2;
         while (numberOfTries > 0) {
 
@@ -527,7 +527,6 @@ public class DataSourceStore extends StoreBase {
 
     @Override
     public void save(Session session) throws IOException {
-        ByteArrayOutputStream bos = null;
         String saveSql = "INSERT INTO " + sessionTable + " (" + sessionIdCol + ", " + sessionAppCol + ", " +
                 sessionDataCol + ", " + sessionValidCol + ", " + sessionMaxInactiveCol + ", " + sessionLastAccessedCol +
                 ") VALUES (?, ?, ?, ?, ?, ?)";
@@ -541,12 +540,10 @@ public class DataSourceStore extends StoreBase {
                 }
 
                 try {
-                    // If sessions already exist in DB, remove and insert again.
-                    // TODO:
-                    // * Check if ID exists in database and if so use UPDATE.
+                    // Remove session if it exists and insert again.
                     remove(session.getIdInternal(), _conn);
 
-                    bos = new ByteArrayOutputStream();
+                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
                     try (ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(bos))) {
                         ((StandardSession) session).writeObjectData(oos);
                     }
@@ -619,23 +616,41 @@ public class DataSourceStore extends StoreBase {
     protected Connection open() throws SQLException {
         if (dataSourceName != null && dataSource == null) {
             org.apache.catalina.Context context = getManager().getContext();
-            ClassLoader oldThreadContextCL = null;
             if (getLocalDataSource()) {
-                oldThreadContextCL = context.bind(null);
-            }
-
-            Context initCtx;
-            try {
-                initCtx = new InitialContext();
-                Context envCtx = (Context) initCtx.lookup("java:comp/env");
-                this.dataSource = (DataSource) envCtx.lookup(this.dataSourceName);
-            } catch (NamingException e) {
-                context.getLogger().error(sm.getString("dataSourceStore.wrongDataSource", this.dataSourceName), e);
-            } finally {
-                if (getLocalDataSource()) {
+                ClassLoader oldThreadContextCL = context.bind(null);
+                try {
+                    Context envCtx = (Context) (new InitialContext()).lookup("java:comp/env");
+                    this.dataSource = (DataSource) envCtx.lookup(this.dataSourceName);
+                } catch (NamingException e) {
+                    context.getLogger().error(sm.getString("dataSourceStore.wrongDataSource", this.dataSourceName), e);
+                } finally {
                     context.unbind(oldThreadContextCL);
                 }
+            } else {
+                try {
+                    // This should be the normal way to lookup for the global in the global context (no comp/env)
+                    Service service = Container.getService(context);
+                    if (service != null) {
+                        Server server = service.getServer();
+                        if (server != null) {
+                            Context namingContext = server.getGlobalNamingContext();
+                            this.dataSource = (DataSource) namingContext.lookup(dataSourceName);
+                        }
+                    }
+                } catch (NamingException e) {
+                    // Ignore, try another way for compatibility
+                }
+                if (this.dataSource == null) {
+                    try {
+                        Context envCtx = (Context) (new InitialContext()).lookup("java:comp/env");
+                        this.dataSource = (DataSource) envCtx.lookup(this.dataSourceName);
+                    } catch (NamingException e) {
+                        context.getLogger().error(sm.getString("dataSourceStore.wrongDataSource", this.dataSourceName),
+                                e);
+                    }
+                }
             }
+
         }
 
         if (dataSource != null) {

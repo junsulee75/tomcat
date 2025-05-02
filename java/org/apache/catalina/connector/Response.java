@@ -673,11 +673,7 @@ public class Response implements HttpServletResponse {
             log.warn(sm.getString("coyoteResponse.encoding.invalid", encoding), e);
             return;
         }
-        if (encoding == null) {
-            isCharacterEncodingSet = false;
-        } else {
-            isCharacterEncodingSet = true;
-        }
+        isCharacterEncodingSet = encoding != null;
     }
 
 
@@ -700,11 +696,7 @@ public class Response implements HttpServletResponse {
         }
 
         getCoyoteResponse().setCharsetHolder(CharsetHolder.getInstance(charset));
-        if (charset == null) {
-            isCharacterEncodingSet = false;
-        } else {
-            isCharacterEncodingSet = true;
-        }
+        isCharacterEncodingSet = charset != null;
     }
 
 
@@ -862,7 +854,7 @@ public class Response implements HttpServletResponse {
     @Override
     public void addDateHeader(String name, long value) {
 
-        if (name == null || name.length() == 0) {
+        if (name == null || name.isEmpty()) {
             return;
         }
 
@@ -887,7 +879,7 @@ public class Response implements HttpServletResponse {
 
     private void addHeader(String name, String value, Charset charset) {
 
-        if (name == null || name.length() == 0 || value == null) {
+        if (name == null || name.isEmpty() || value == null) {
             return;
         }
 
@@ -930,7 +922,7 @@ public class Response implements HttpServletResponse {
     @Override
     public void addIntHeader(String name, int value) {
 
-        if (name == null || name.length() == 0) {
+        if (name == null || name.isEmpty()) {
             return;
         }
 
@@ -1038,11 +1030,46 @@ public class Response implements HttpServletResponse {
 
 
     @Override
+    public void sendEarlyHints() {
+        if (isCommitted()) {
+            return;
+        }
+
+        // Ignore any call from an included servlet
+        if (included) {
+            return;
+        }
+
+        getCoyoteResponse().action(ActionCode.EARLY_HINTS, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <i>Deprecated functionality</i>: calling <code>sendError</code> with a status code of 103 differs from the usual
+     * behavior. Sending 103 will trigger the container to send a "103 Early Hints" informational response including all
+     * current headers. The application can continue to use the request and response after calling sendError with a 103
+     * status code, including triggering a more typical response of any type.
+     * <p>
+     * Starting with Tomcat 12, applications should use {@link #sendEarlyHints}.
+     */
+    @Override
     public void sendError(int status) throws IOException {
         sendError(status, null);
     }
 
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <i>Deprecated functionality</i>: calling <code>sendError</code> with a status code of 103 differs from the usual
+     * behavior. Sending 103 will trigger the container to send a "103 Early Hints" informational response including all
+     * current headers. The application can continue to use the request and response after calling sendError with a 103
+     * status code, including triggering a more typical response of any type.
+     * <p>
+     * Starting with Tomcat 12, applications should use {@link #sendEarlyHints}.
+     */
     @Override
     public void sendError(int status, String message) throws IOException {
 
@@ -1055,16 +1082,20 @@ public class Response implements HttpServletResponse {
             return;
         }
 
-        setError();
+        if (HttpServletResponse.SC_EARLY_HINTS == status) {
+            sendEarlyHints();
+        } else {
+            setError();
 
-        getCoyoteResponse().setStatus(status);
-        getCoyoteResponse().setMessage(message);
+            getCoyoteResponse().setStatus(status);
+            getCoyoteResponse().setMessage(message);
 
-        // Clear any data content that has been buffered
-        resetBuffer();
+            // Clear any data content that has been buffered
+            resetBuffer();
 
-        // Cause the response to be finished (from the application perspective)
-        setSuspended(true);
+            // Cause the response to be finished (from the application perspective)
+            setSuspended(true);
+        }
     }
 
 
@@ -1118,7 +1149,7 @@ public class Response implements HttpServletResponse {
     @Override
     public void setDateHeader(String name, long value) {
 
-        if (name == null || name.length() == 0) {
+        if (name == null || name.isEmpty()) {
             return;
         }
 
@@ -1138,7 +1169,7 @@ public class Response implements HttpServletResponse {
     @Override
     public void setHeader(String name, String value) {
 
-        if (name == null || name.length() == 0) {
+        if (name == null || name.isEmpty()) {
             return;
         }
 
@@ -1165,7 +1196,7 @@ public class Response implements HttpServletResponse {
     @Override
     public void setIntHeader(String name, int value) {
 
-        if (name == null || name.length() == 0) {
+        if (name == null || name.isEmpty()) {
             return;
         }
 
@@ -1246,7 +1277,7 @@ public class Response implements HttpServletResponse {
 
     private static boolean doIsEncodeable(Context context, Request hreq, Session session, String location) {
         // Is this a valid absolute URL?
-        URL url = null;
+        URL url;
         try {
             URI uri = new URI(location);
             url = uri.toURL();
@@ -1288,9 +1319,7 @@ public class Response implements HttpServletResponse {
                 return false;
             }
             String tok = ";" + SessionConfig.getSessionUriParamName(context) + "=" + session.getIdInternal();
-            if (file.indexOf(tok, contextPath.length()) >= 0) {
-                return false;
-            }
+            return file.indexOf(tok, contextPath.length()) < 0;
         }
 
         // This URL belongs to our web application, so it is encodeable
@@ -1313,7 +1342,7 @@ public class Response implements HttpServletResponse {
     protected String toAbsolute(String location) {
 
         if (location == null) {
-            return location;
+            return null;
         }
 
         boolean leadingSlash = location.startsWith("/");
@@ -1403,7 +1432,6 @@ public class Response implements HttpServletResponse {
         char[] c = cc.getChars();
         int start = cc.getStart();
         int end = cc.getEnd();
-        int index = 0;
         int startIndex = 0;
 
         // Advance past the first three / characters (should place index just
@@ -1414,7 +1442,7 @@ public class Response implements HttpServletResponse {
         }
 
         // Remove /./
-        index = startIndex;
+        int index = startIndex;
         while (true) {
             index = cc.indexOf("/./", 0, 3, index);
             if (index < 0) {
@@ -1477,10 +1505,7 @@ public class Response implements HttpServletResponse {
             return false;
         }
         pos = uri.indexOf('/', pos + 3);
-        if (pos < 0) {
-            return false;
-        }
-        return true;
+        return pos >= 0;
     }
 
     /**
@@ -1510,7 +1535,7 @@ public class Response implements HttpServletResponse {
             path = path.substring(0, pound);
         }
         StringBuilder sb = new StringBuilder(path);
-        if (sb.length() > 0) { // jsessionid can't be first.
+        if (!sb.isEmpty()) { // jsessionid can't be first.
             sb.append(';');
             sb.append(SessionConfig.getSessionUriParamName(request.getContext()));
             sb.append('=');

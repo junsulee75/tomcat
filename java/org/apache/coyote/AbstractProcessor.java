@@ -393,6 +393,14 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
                 ack((ContinueResponseTiming) param);
                 break;
             }
+            case EARLY_HINTS: {
+                try {
+                    earlyHints();
+                } catch (IOException e) {
+                    handleIOException(e);
+                }
+                break;
+            }
             case CLIENT_FLUSH: {
                 action(ActionCode.COMMIT, null);
                 try {
@@ -597,6 +605,10 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
                 addDispatch(DispatchType.NON_BLOCKING_WRITE);
                 break;
             }
+            case DISPATCH_ERROR: {
+                addDispatch(DispatchType.NON_BLOCKING_ERROR);
+                break;
+            }
             case DISPATCH_EXECUTE: {
                 executeDispatches();
                 break;
@@ -659,7 +671,7 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
     /**
      * {@inheritDoc}
      * <p>
-     * Sub-classes of this base class represent a single request/response pair. The timeout to be processed is,
+     * Subclasses of this base class represent a single request/response pair. The timeout to be processed is,
      * therefore, the Servlet asynchronous processing timeout.
      */
     @Override
@@ -714,7 +726,8 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
 
 
     /**
-     * When committing the response, we have to validate the set of headers, as well as setup the response filters.
+     * When committing the response, we have to validate the set of headers, as well as set up the response filters.
+     *
      * @throws IOException IO exception during commit
      */
     protected abstract void prepareResponse() throws IOException;
@@ -722,6 +735,7 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
 
     /**
      * Finish the current response.
+     *
      * @throws IOException IO exception during the write
      */
     protected abstract void finishResponse() throws IOException;
@@ -729,13 +743,18 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
 
     /**
      * Process acknowledgment of the request.
+     *
      * @param continueResponseTiming specifies when an acknowledgment should be sent
      */
     protected abstract void ack(ContinueResponseTiming continueResponseTiming);
 
 
+    protected abstract void earlyHints() throws IOException;
+
+
     /**
      * Callback to write data from the buffer.
+     *
      * @throws IOException IO exception during the write
      */
     protected abstract void flush() throws IOException;
@@ -743,15 +762,17 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
 
     /**
      * Queries if bytes are available in buffers.
+     *
      * @param doRead {@code true} to perform a read when no bytes are availble
+     *
      * @return the amount of bytes that are known to be available
      */
     protected abstract int available(boolean doRead);
 
 
     /**
-     * Set the specified byte chunk as the request body that will be read. This allows saving and
-     * processing requests.
+     * Set the specified byte chunk as the request body that will be read. This allows saving and processing requests.
+     *
      * @param body the byte chunk containing all the request bytes
      */
     protected abstract void setRequestBody(ByteChunk body);
@@ -764,8 +785,8 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
 
 
     /**
-     * Swallowing bytes is required for pipelining requests, so this allows to avoid doing extra operations
-     * in case an error occurs and the connection is to be closed instead.
+     * Swallowing bytes is required for pipelining requests, so this allows to avoid doing extra operations in case an
+     * error occurs and the connection is to be closed instead.
      */
     protected abstract void disableSwallowRequest();
 
@@ -797,14 +818,12 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
      * Populate the TLS related request attributes from the {@link SSLSupport} instance associated with this processor.
      * Protocols that populate TLS attributes from a different source (e.g. AJP) should override this method.
      */
-    @SuppressWarnings("deprecation")
     protected void populateSslRequestAttributes() {
         try {
             if (sslSupport != null) {
                 Object sslO = sslSupport.getProtocol();
                 if (sslO != null) {
                     request.setAttribute(SSLSupport.SECURE_PROTOCOL_KEY, sslO);
-                    request.setAttribute(SSLSupport.PROTOCOL_VERSION_KEY, sslO);
                 }
                 sslO = sslSupport.getCipherSuite();
                 if (sslO != null) {
@@ -878,8 +897,8 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
 
 
     /**
-     * When using non blocking IO, register to get a callback when polling determines that bytes
-     * are available for reading.
+     * When using non blocking IO, register to get a callback when polling determines that bytes are available for
+     * reading.
      */
     protected abstract void registerReadInterest();
 
@@ -1023,9 +1042,9 @@ public abstract class AbstractProcessor extends AbstractProcessorLight implement
         // Set the socket wrapper so the access log can read the socket related
         // information (e.g. client IP)
         setSocketWrapper(socketWrapper);
-        // Setup the minimal request information
+        // Set up the minimal request information
         request.setStartTimeNanos(System.nanoTime());
-        // Setup the minimal response information
+        // Set up the minimal response information
         response.setStatus(400);
         response.setError();
         getAdapter().log(request, response, 0);

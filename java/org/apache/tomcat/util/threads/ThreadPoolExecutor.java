@@ -24,10 +24,10 @@
  */
 package org.apache.tomcat.util.threads;
 
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
@@ -169,7 +169,7 @@ import org.apache.tomcat.util.res.StringManager;
  * Direct handoffs generally require unbounded maximumPoolSizes to
  * avoid rejection of new submitted tasks. This in turn admits the
  * possibility of unbounded thread growth when commands continue to
- * arrive on average faster than they can be processed.
+ * arrive faster on average than they can be processed.
  *
  * <li><em> Unbounded queues.</em> Using an unbounded queue (for
  * example a {@link java.util.concurrent.LinkedBlockingQueue}
@@ -182,8 +182,8 @@ import org.apache.tomcat.util.res.StringManager;
  * affect each others execution; for example, in a web page server.
  * While this style of queuing can be useful in smoothing out
  * transient bursts of requests, it admits the possibility of
- * unbounded work queue growth when commands continue to arrive on
- * average faster than they can be processed.
+ * unbounded work queue growth when commands continue to arrive faster
+ * on average than they can be processed.
  *
  * <li><em>Bounded queues.</em> A bounded queue (for example, an
  * {@link java.util.concurrent.ArrayBlockingQueue})
@@ -394,7 +394,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     // runState is stored in the high-order bits
     private static final int RUNNING    = -1 << COUNT_BITS;
-    private static final int SHUTDOWN   =  0 << COUNT_BITS;
+    private static final int SHUTDOWN   =  0;
     private static final int STOP       =  1 << COUNT_BITS;
     private static final int TIDYING    =  2 << COUNT_BITS;
     private static final int TERMINATED =  3 << COUNT_BITS;
@@ -462,7 +462,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * to be generally preferable to use a lock. Among the reasons is
      * that this serializes interruptIdleWorkers, which avoids
      * unnecessary interrupt storms, especially during shutdown.
-     * Otherwise exiting threads would concurrently interrupt those
+     * Otherwise, exiting threads would concurrently interrupt those
      * that have not yet interrupted. It also simplifies some of the
      * associated statistics bookkeeping of largestPoolSize etc. We
      * also hold mainLock on shutdown and shutdownNow, for the sake of
@@ -549,7 +549,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     /**
      * Timeout in nanoseconds for idle threads waiting for work.
      * Threads use this timeout when there are more than corePoolSize
-     * present or if allowCoreThreadTimeOut. Otherwise they wait
+     * present or if allowCoreThreadTimeOut. Otherwise, they wait
      * forever for new work.
      */
     private volatile long keepAliveTime;
@@ -608,6 +608,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * This class will never be serialized, but we provide a
          * serialVersionUID to suppress a javac warning.
          */
+        @Serial
         private static final long serialVersionUID = 6138294804551838833L;
 
         /** Thread this worker is running in.  Null if factory fails. */
@@ -1334,12 +1335,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         try {
             executeInternal(command);
         } catch (RejectedExecutionException rx) {
-            if (getQueue() instanceof TaskQueue) {
+            if (getQueue() instanceof TaskQueue queue) {
                 // If the Executor is close to maximum pool size, concurrent
                 // calls to execute() may result (due to Tomcat's use of
                 // TaskQueue) in some tasks being rejected rather than queued.
                 // If this happens, add them to the queue.
-                final TaskQueue queue = (TaskQueue) getQueue();
                 if (!queue.force(command)) {
                     submittedCount.decrementAndGet();
                     throw new RejectedExecutionException(sm.getString("threadPoolExecutor.queueFull"));
@@ -1837,13 +1837,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     public void purge() {
         final BlockingQueue<Runnable> q = workQueue;
         try {
-            Iterator<Runnable> it = q.iterator();
-            while (it.hasNext()) {
-                Runnable r = it.next();
-                if (r instanceof Future<?> && ((Future<?>)r).isCancelled()) {
-                    it.remove();
-                }
-            }
+            q.removeIf(r -> r instanceof Future<?> && ((Future<?>) r).isCancelled());
         } catch (ConcurrentModificationException fallThrough) {
             // Take slow path if we encounter interference during traversal.
             // Make copy for traversal and call remove for cancelled entries.
@@ -2149,12 +2143,8 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
     protected boolean currentThreadShouldBeStopped() {
         Thread currentThread = Thread.currentThread();
-        if (threadRenewalDelay >= 0 && currentThread instanceof TaskThread) {
-            TaskThread currentTaskThread = (TaskThread) currentThread;
-            if (currentTaskThread.getCreationTime() <
-                    this.lastContextStoppedTime.longValue()) {
-                return true;
-            }
+        if (threadRenewalDelay >= 0 && currentThread instanceof TaskThread currentTaskThread) {
+            return currentTaskThread.getCreationTime() < this.lastContextStoppedTime.longValue();
         }
         return false;
     }
@@ -2247,7 +2237,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      * request and then retries {@code execute}, unless the executor
      * is shut down, in which case the task is discarded. This policy is
      * rarely useful in cases where other threads may be waiting for
-     * tasks to terminate, or failures must be recorded. Instead consider
+     * tasks to terminate, or failures must be recorded. Instead, consider
      * using a handler of the form:
      * <pre> {@code
      * new RejectedExecutionHandler() {

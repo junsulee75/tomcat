@@ -45,7 +45,7 @@ public final class PasswdUserDatabase implements UserDatabase {
 
 
     /**
-     * The set of home directories for all defined users, keyed by user name.
+     * The set of home directories for all defined users, keyed by username.
      */
     private final Map<String,String> homes = new HashMap<>();
 
@@ -88,9 +88,9 @@ public final class PasswdUserDatabase implements UserDatabase {
         try (BufferedReader reader = new BufferedReader(new FileReader(PASSWORD_FILE))) {
             String line = reader.readLine();
             while (line != null) {
-                String tokens[] = line.split(":");
+                String[] tokens = line.split(":");
                 // Need non-zero 1st and 6th tokens
-                if (tokens.length > 5 && tokens[0].length() > 0 && tokens[5].length() > 0) {
+                if (tokens.length > 5 && !tokens[0].isEmpty() && !tokens[5].isEmpty()) {
                     // Add this user and corresponding directory
                     homes.put(tokens[0], tokens[5]);
                 }

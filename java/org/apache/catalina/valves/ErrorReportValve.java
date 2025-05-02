@@ -94,7 +94,7 @@ public class ErrorReportValve extends ValveBase {
 
         if (response.isCommitted()) {
             if (response.setErrorReported()) {
-                // Error wasn't previously reported but we can't write an error
+                // Error wasn't previously reported, but we can't write an error
                 // page because the response has already been committed.
 
                 // See if IO is allowed
@@ -217,7 +217,7 @@ public class ErrorReportValve extends ValveBase {
         if (message == null) {
             if (throwable != null) {
                 String exceptionMessage = throwable.getMessage();
-                if (exceptionMessage != null && exceptionMessage.length() > 0) {
+                if (exceptionMessage != null && !exceptionMessage.isEmpty()) {
                     try (Scanner scanner = new Scanner(exceptionMessage)) {
                         message = Escape.htmlElementContent(scanner.nextLine());
                     }
@@ -360,7 +360,7 @@ public class ErrorReportValve extends ValveBase {
         int pos = elements.length;
         for (int i = elements.length - 1; i >= 0; i--) {
             if ((elements[i].getClassName().startsWith("org.apache.catalina.core.ApplicationFilterChain")) &&
-                    (elements[i].getMethodName().equals("internalDoFilter"))) {
+                    (elements[i].getMethodName().equals("doFilter"))) {
                 pos = i;
                 break;
             }
@@ -389,7 +389,8 @@ public class ErrorReportValve extends ValveBase {
         response.setContentType("text/html");
         response.setCharacterEncoding("UTF-8");
 
-        try (OutputStream os = response.getOutputStream(); InputStream is = new FileInputStream(file);) {
+        try (OutputStream os = response.getOutputStream();
+             InputStream is = new FileInputStream(file)) {
             IOTools.flow(is, os);
         } catch (IOException e) {
             getContainer().getLogger().warn(sm.getString("errorReportValve.errorPageIOException", location), e);

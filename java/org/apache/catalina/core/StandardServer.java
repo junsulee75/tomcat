@@ -104,7 +104,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
     /**
      * Global naming resources.
      */
-    private NamingResourcesImpl globalNamingResources = null;
+    private NamingResourcesImpl globalNamingResources;
 
 
     /**
@@ -138,13 +138,9 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
      */
     private Service[] services = new Service[0];
 
-    private final Lock servicesReadLock;
-    private final Lock servicesWriteLock;
-    {
-        ReentrantReadWriteLock servicesLock = new ReentrantReadWriteLock();
-        servicesReadLock = servicesLock.readLock();
-        servicesWriteLock = servicesLock.writeLock();
-    }
+    private final ReentrantReadWriteLock servicesLock = new ReentrantReadWriteLock();
+    private final Lock servicesReadLock = servicesLock.readLock();
+    private final Lock servicesWriteLock = servicesLock.writeLock();
 
     /**
      * The shutdown command string we are looking for.
@@ -465,7 +461,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
 
         servicesWriteLock.lock();
         try {
-            Service results[] = new Service[services.length + 1];
+            Service[] results = new Service[services.length + 1];
             System.arraycopy(services, 0, results, 0, services.length);
             results[services.length] = service;
             services = results;
@@ -584,7 +580,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
                         expected += random.nextInt() % 1024;
                     }
                     while (expected > 0) {
-                        int ch = -1;
+                        int ch;
                         try {
                             ch = stream.read();
                         } catch (IOException e) {
@@ -797,7 +793,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         try {
             // Note: Hard-coded domain used since this object is per Server/JVM
             ObjectName sname = new ObjectName("Catalina:type=StoreConfig");
-            MBeanServer server = Registry.getRegistry(null, null).getMBeanServer();
+            MBeanServer server = Registry.getRegistry(null).getMBeanServer();
             if (server.isRegistered(sname)) {
                 server.invoke(sname, "storeConfig", null, null);
             } else {
@@ -824,7 +820,7 @@ public final class StandardServer extends LifecycleMBeanBase implements Server {
         try {
             // Note: Hard-coded domain used since this object is per Server/JVM
             ObjectName sname = new ObjectName("Catalina:type=StoreConfig");
-            MBeanServer server = Registry.getRegistry(null, null).getMBeanServer();
+            MBeanServer server = Registry.getRegistry(null).getMBeanServer();
             if (server.isRegistered(sname)) {
                 server.invoke(sname, "store", new Object[] { context }, new String[] { "java.lang.String" });
             } else {

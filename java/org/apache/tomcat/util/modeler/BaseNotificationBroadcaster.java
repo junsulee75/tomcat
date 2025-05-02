@@ -49,7 +49,7 @@ public class BaseNotificationBroadcaster implements NotificationBroadcaster {
      * The set of registered <code>BaseNotificationBroadcasterEntry</code>
      * entries.
      */
-    protected ArrayList<BaseNotificationBroadcasterEntry> entries =
+    final ArrayList<BaseNotificationBroadcasterEntry> entries =
             new ArrayList<>();
 
 
@@ -62,7 +62,7 @@ public class BaseNotificationBroadcaster implements NotificationBroadcaster {
      * @param listener Listener that will receive event notifications
      * @param filter Filter object used to filter event notifications
      *  actually delivered, or <code>null</code> for no filtering
-     * @param handback Handback object to be sent along with event
+     * @param handback object to be sent along with event
      *  notifications
      *
      * @exception IllegalArgumentException if the listener parameter is null
@@ -76,17 +76,13 @@ public class BaseNotificationBroadcaster implements NotificationBroadcaster {
         synchronized (entries) {
 
             // Optimization to coalesce attribute name filters
-            if (filter instanceof BaseAttributeFilter) {
-                BaseAttributeFilter newFilter = (BaseAttributeFilter) filter;
+            if (filter instanceof BaseAttributeFilter newFilter) {
                 for (BaseNotificationBroadcasterEntry item : entries) {
                     if ((item.listener == listener) &&
-                        (item.filter != null) &&
-                        (item.filter instanceof BaseAttributeFilter) &&
+                        (item.filter instanceof BaseAttributeFilter oldFilter) &&
                         (item.handback == handback)) {
-                        BaseAttributeFilter oldFilter =
-                            (BaseAttributeFilter) item.filter;
-                        String newNames[] = newFilter.getNames();
-                        String oldNames[] = oldFilter.getNames();
+                        String[] newNames = newFilter.getNames();
+                        String[] oldNames = oldFilter.getNames();
                         if (newNames.length == 0) {
                             oldFilter.clear();
                         } else {
@@ -175,10 +171,10 @@ class BaseNotificationBroadcasterEntry {
         this.handback = handback;
     }
 
-    public NotificationFilter filter = null;
+    public NotificationFilter filter;
 
-    public Object handback = null;
+    public Object handback;
 
-    public NotificationListener listener = null;
+    public NotificationListener listener;
 
 }

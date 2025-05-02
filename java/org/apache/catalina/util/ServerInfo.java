@@ -72,7 +72,7 @@ public class ServerInfo {
             ExceptionUtils.handleThrowable(t);
         }
         if (info == null || info.equals("Apache Tomcat/@VERSION@")) {
-            info = "Apache Tomcat/11.0.x-dev";
+            info = "Apache Tomcat/12.0.x-dev";
         }
         if (built == null || built.equals("@VERSION_BUILT@")) {
             built = "unknown";
@@ -81,7 +81,7 @@ public class ServerInfo {
             builtIso = "unknown";
         }
         if (number == null || number.equals("@VERSION_NUMBER@")) {
-            number = "11.0.x";
+            number = "12.0.x";
         }
 
         serverInfo = info;
@@ -122,7 +122,7 @@ public class ServerInfo {
         return serverNumber;
     }
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         System.out.println("Server version: " + getServerInfo());
         System.out.println("Server built:   " + getServerBuilt());
         System.out.println("Server number:  " + getServerNumber());

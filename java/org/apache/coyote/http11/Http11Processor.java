@@ -22,6 +22,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -92,14 +93,11 @@ public class Http11Processor extends AbstractProcessor {
     private final Http11OutputBuffer outputBuffer;
 
 
-    private final HttpParser httpParser;
-
-
     /**
      * Tracks how many internal filters are in the filter library so they are skipped when looking for pluggable
      * filters.
      */
-    private int pluggableFilterIndex = Integer.MAX_VALUE;
+    private final int pluggableFilterIndex;
 
 
     /**
@@ -149,11 +147,22 @@ public class Http11Processor extends AbstractProcessor {
     private SendfileDataBase sendfileData = null;
 
 
+    /**
+     * Http parser.
+     */
+    private final HttpParser httpParser;
+
+
     public Http11Processor(AbstractHttp11Protocol<?> protocol, Adapter adapter) {
         super(adapter);
         this.protocol = protocol;
 
-        httpParser = new HttpParser(protocol.getRelaxedPathChars(), protocol.getRelaxedQueryChars());
+        HttpParser httpParser = protocol.getHttpParser();
+        if (httpParser == null) {
+            log.info(sm.getString("http11processor.noParser"));
+            httpParser = new HttpParser(protocol.getRelaxedPathChars(), protocol.getRelaxedQueryChars());
+        }
+        this.httpParser = httpParser;
 
         inputBuffer = new Http11InputBuffer(request, protocol.getMaxHttpRequestHeaderSize(), httpParser);
         request.setInputBuffer(inputBuffer);
@@ -166,9 +175,9 @@ public class Http11Processor extends AbstractProcessor {
         outputBuffer.addFilter(new IdentityOutputFilter());
 
         // Create and add the chunked filters.
-        inputBuffer.addFilter(
-                new ChunkedInputFilter(request, protocol.getMaxTrailerSize(), protocol.getAllowedTrailerHeadersInternal(),
-                        protocol.getMaxExtensionSize(), protocol.getMaxSwallowSize()));
+        inputBuffer.addFilter(new ChunkedInputFilter(request, protocol.getMaxTrailerSize(),
+                protocol.getAllowedTrailerHeadersInternal(), protocol.getMaxExtensionSize(),
+                protocol.getMaxSwallowSize()));
         outputBuffer.addFilter(new ChunkedOutputFilter());
 
         // Create and add the void filters.
@@ -444,11 +453,7 @@ public class Http11Processor extends AbstractProcessor {
 
             if (!protocol.getDisableUploadTimeout()) {
                 int connectionTimeout = protocol.getConnectionTimeout();
-                if (connectionTimeout > 0) {
-                    socketWrapper.setReadTimeout(connectionTimeout);
-                } else {
-                    socketWrapper.setReadTimeout(0);
-                }
+                socketWrapper.setReadTimeout(Math.max(connectionTimeout, 0));
             }
 
             rp.setStage(org.apache.coyote.Constants.STAGE_KEEPALIVE);
@@ -616,7 +621,7 @@ public class Http11Processor extends AbstractProcessor {
 
 
     /**
-     * After reading the request headers, we have to setup the request filters.
+     * After reading the request headers, we have to set up the request filters.
      */
     private void prepareRequest() throws IOException {
 
@@ -863,7 +868,7 @@ public class Http11Processor extends AbstractProcessor {
 
         OutputFilter[] outputFilters = outputBuffer.getFilters();
 
-        if (http09 == true) {
+        if (http09) {
             // HTTP/0.9
             outputBuffer.addActiveFilter(outputFilters[Constants.IDENTITY_FILTER]);
             outputBuffer.commit();
@@ -887,7 +892,7 @@ public class Http11Processor extends AbstractProcessor {
 
         boolean head = request.method().equals("HEAD");
         if (head) {
-            // No entity body
+            // Any entity body, if present, should not be sent
             outputBuffer.addActiveFilter(outputFilters[Constants.VOID_FILTER]);
             contentDelimitation = true;
         }
@@ -927,6 +932,13 @@ public class Http11Processor extends AbstractProcessor {
             headers.setValue("Content-Length").setLong(contentLength);
             outputBuffer.addActiveFilter(outputFilters[Constants.IDENTITY_FILTER]);
             contentDelimitation = true;
+        } else if (head) {
+            /*
+             * The OutputBuffer can't differentiate between a zero length response because GET would have produced a
+             * zero length body and a zero length response because HEAD didn't write any content. Therefore skip setting
+             * the "transfer-encoding: chunked" header as that may not be consistent with what would be seen with the
+             * equivalent GET.
+             */
         } else {
             // If the response code supports an entity body and we're on
             // HTTP 1.1 then we chunk unless we have a Connection: close header
@@ -988,8 +1000,8 @@ public class Http11Processor extends AbstractProcessor {
             }
 
             if (protocol.getUseKeepAliveResponseHeader()) {
-                boolean connectionKeepAlivePresent = isConnectionToken(request.getMimeHeaders(),
-                        Constants.KEEP_ALIVE_HEADER_VALUE_TOKEN);
+                boolean connectionKeepAlivePresent =
+                        isConnectionToken(request.getMimeHeaders(), Constants.KEEP_ALIVE_HEADER_VALUE_TOKEN);
 
                 if (connectionKeepAlivePresent) {
                     int keepAliveTimeout = protocol.getKeepAliveTimeout();
@@ -1026,18 +1038,15 @@ public class Http11Processor extends AbstractProcessor {
             headers.setValue("Server").setString(server);
         }
 
-        // Exclude some HTTP header fields where the value is determined only
-        // while generating the content as per section 9.3.2 of RFC 9110.
-        if (head) {
-            headers.removeHeader("content-length");
-            headers.removeHeader("content-range");
-            headers.removeHeader("trailer");
-            headers.removeHeader("transfer-encoding");
-        }
+        writeHeaders(response.getStatus(), headers);
 
-        // Build the response header
+        outputBuffer.commit();
+    }
+
+
+    private void writeHeaders(int status, MimeHeaders headers) {
         try {
-            outputBuffer.sendStatus();
+            outputBuffer.sendStatus(status);
 
             int size = headers.size();
             for (int i = 0; i < size; i++) {
@@ -1054,7 +1063,7 @@ public class Http11Processor extends AbstractProcessor {
                     outputBuffer.resetHeaderBuffer();
                     // -1 as it will be incremented at the start of the loop and header indexes start at 0.
                     i = -1;
-                    outputBuffer.sendStatus();
+                    outputBuffer.sendStatus(status);
                 }
             }
             outputBuffer.endHeaders();
@@ -1065,9 +1074,8 @@ public class Http11Processor extends AbstractProcessor {
             outputBuffer.resetHeaderBuffer();
             throw t;
         }
-
-        outputBuffer.commit();
     }
+
 
     private static boolean isConnectionToken(MimeHeaders headers, String token) throws IOException {
         MessageBytes connection = headers.getValue(Constants.CONNECTION);
@@ -1238,6 +1246,14 @@ public class Http11Processor extends AbstractProcessor {
 
 
     @Override
+    protected void earlyHints() throws IOException {
+        writeHeaders(HttpServletResponse.SC_EARLY_HINTS, response.getMimeHeaders());
+        outputBuffer.writeHeaders();
+        outputBuffer.resetHeaderBuffer();
+    }
+
+
+    @Override
     protected final void flush() throws IOException {
         outputBuffer.flush();
     }
@@ -1392,17 +1408,14 @@ public class Http11Processor extends AbstractProcessor {
                 sendfileData.keepAliveState = SendfileKeepAliveState.NONE;
             }
             result = socketWrapper.processSendfile(sendfileData);
-            switch (result) {
-                case ERROR:
-                    // Write failed
-                    if (log.isDebugEnabled()) {
-                        log.debug(sm.getString("http11processor.sendfile.error"));
-                    }
-                    setErrorState(ErrorState.CLOSE_CONNECTION_NOW, null);
-                    //$FALL-THROUGH$
-                default:
-                    sendfileData = null;
+            if (Objects.requireNonNull(result) == SendfileState.ERROR) {
+                // Write failed
+                if (log.isDebugEnabled()) {
+                    log.debug(sm.getString("http11processor.sendfile.error"));
+                }
+                setErrorState(ErrorState.CLOSE_CONNECTION_NOW, null);
             }
+            sendfileData = null;
         }
         return result;
     }

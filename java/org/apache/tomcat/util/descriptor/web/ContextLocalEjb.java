@@ -17,6 +17,7 @@
 package org.apache.tomcat.util.descriptor.web;
 
 
+import java.io.Serial;
 
 /**
  * Representation of a local EJB resource reference for a web application, as
@@ -28,6 +29,7 @@ package org.apache.tomcat.util.descriptor.web;
  */
 public class ContextLocalEjb extends ResourceBase {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     // ------------------------------------------------------------- Properties
@@ -149,12 +151,9 @@ public class ContextLocalEjb extends ResourceBase {
             return false;
         }
         if (local == null) {
-            if (other.local != null) {
-                return false;
-            }
-        } else if (!local.equals(other.local)) {
-            return false;
+            return other.local == null;
+        } else {
+            return local.equals(other.local);
         }
-        return true;
     }
 }

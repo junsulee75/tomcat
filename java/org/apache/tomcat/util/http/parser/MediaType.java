@@ -37,7 +37,7 @@ public class MediaType {
         this.parameters = parameters;
 
         String cs = parameters.get("charset");
-        if (cs != null && cs.length() > 0 && cs.charAt(0) == '"') {
+        if (cs != null && !cs.isEmpty() && cs.charAt(0) == '"') {
             cs = HttpParser.unquote(cs);
         }
         this.charset = cs;
@@ -74,7 +74,7 @@ public class MediaType {
                     result.append(subtype);
                     for (Map.Entry<String,String> entry : parameters.entrySet()) {
                         String value = entry.getValue();
-                        if (value == null || value.length() == 0) {
+                        if (value == null || value.isEmpty()) {
                             continue;
                         }
                         result.append(';');
@@ -128,7 +128,7 @@ public class MediaType {
 
         // Type (required)
         String type = HttpParser.readToken(input);
-        if (type == null || type.length() == 0) {
+        if (type == null || type.isEmpty()) {
             return null;
         }
 
@@ -138,7 +138,7 @@ public class MediaType {
 
         // Subtype (required)
         String subtype = HttpParser.readToken(input);
-        if (subtype == null || subtype.length() == 0) {
+        if (subtype == null || subtype.isEmpty()) {
             return null;
         }
 
@@ -169,4 +169,38 @@ public class MediaType {
         return new MediaType(type, subtype, parameters);
     }
 
+
+    /**
+     * A simplified media type parser that removes any parameters and just returns the media type and the subtype.
+     *
+     * @param input The input string to parse
+     *
+     * @return The media type and subtype from the input trimmed and converted to lower case
+     */
+    public static String parseMediaTypeOnly(String input) {
+
+        if (input == null) {
+            return null;
+        }
+
+        /*
+         * Parsing the media type and subtype as tokens as in the parseMediaType() method would further validate the
+         * input but is not currently necessary given how the return value from this method is currently used. The
+         * return value from this method is always compared to a set of allowed or expected values so any non-compliant
+         * values will be rejected / ignored at that stage.
+         */
+        String result;
+
+        // Remove parameters
+        int semicolon = input.indexOf(';');
+        if (semicolon > -1) {
+            result = input.substring(0, semicolon);
+        } else {
+            result = input;
+        }
+
+        result = result.trim();
+        result = result.toLowerCase(Locale.ENGLISH);
+        return result;
+    }
 }

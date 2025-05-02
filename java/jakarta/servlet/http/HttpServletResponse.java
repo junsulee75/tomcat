@@ -118,7 +118,7 @@ public interface HttpServletResponse extends ServletResponse {
      * <p>
      * This method has no effect if called from an include.
      *
-     * @param location the redirect location URL (may be absolute or relative)
+     * @param location the redirect location URL (can be absolute or relative)
      *
      * @exception IOException              If an input or output exception occurs
      * @exception IllegalArgumentException If a relative URL is given and cannot be converted into an absolute URL
@@ -137,7 +137,7 @@ public interface HttpServletResponse extends ServletResponse {
      * <p>
      * This method has no effect if called from an include.
      *
-     * @param location    the redirect location URL (may be absolute or relative)
+     * @param location    the redirect location URL (can be absolute or relative)
      * @param clearBuffer if {@code true}, clear the buffer and replace it with the data set by this method otherwise
      *                        retain the existing buffer
      *
@@ -160,7 +160,7 @@ public interface HttpServletResponse extends ServletResponse {
      * <p>
      * This method has no effect if called from an include.
      *
-     * @param location the redirect location URL (may be absolute or relative)
+     * @param location the redirect location URL (can be absolute or relative)
      * @param sc       the status code to use for the redirect
      *
      * @exception IOException              If an input or output exception occurs
@@ -199,7 +199,7 @@ public interface HttpServletResponse extends ServletResponse {
      * If the response has already been committed, this method throws an IllegalStateException. After using this method,
      * the response should be considered to be committed and should not be written to.
      *
-     * @param location    the redirect location URL (may be absolute or relative)
+     * @param location    the redirect location URL (can be absolute or relative)
      * @param sc          the status code to use for the redirect
      * @param clearBuffer if {@code true}, clear the buffer and replace it with the data set by this method otherwise
      *                        retain the existing buffer
@@ -211,6 +211,17 @@ public interface HttpServletResponse extends ServletResponse {
      * @since Servlet 6.1
      */
     void sendRedirect(String location, int sc, boolean clearBuffer) throws IOException;
+
+    /**
+     * Sends a 103 response to the client using the current response headers. This method does not commit the response
+     * and may be called multiple times before the response is committed. The current response headers may include some
+     * headers that have been added automatically by the container.
+     * <p>
+     * This method has no effect if called after the response has been committed.
+     *
+     * @since Servlet 6.2
+     */
+    void sendEarlyHints();
 
     /**
      * Sets a response header with the given name and date-value. The date is specified in terms of milliseconds since
@@ -242,8 +253,8 @@ public interface HttpServletResponse extends ServletResponse {
      * header before setting its value.
      *
      * @param name  the name of the header
-     * @param value the header value If it contains octet string, it should be encoded according to RFC 2047
-     *                  (http://www.ietf.org/rfc/rfc2047.txt)
+     * @param value the header value If it contains octet string, it should be encoded according to
+     *                  <a href="http://www.ietf.org/rfc/rfc2047.txt">RFC 2047</a>
      *
      * @see #containsHeader
      * @see #addHeader
@@ -255,8 +266,8 @@ public interface HttpServletResponse extends ServletResponse {
      * values.
      *
      * @param name  the name of the header
-     * @param value the additional header value If it contains octet string, it should be encoded according to RFC 2047
-     *                  (http://www.ietf.org/rfc/rfc2047.txt)
+     * @param value the additional header value If it contains octet string, it should be encoded according to
+     *                  <a href="http://www.ietf.org/rfc/rfc2047.txt">RFC 2047</a>
      *
      * @see #setHeader
      */
@@ -385,6 +396,14 @@ public interface HttpServletResponse extends ServletResponse {
      * Status code (101) indicating the server is switching protocols according to Upgrade header.
      */
     int SC_SWITCHING_PROTOCOLS = 101;
+
+    /**
+     * Status code (103) indicating that the server is likely to send a final response containing the headers present in
+     * this informational response.
+     *
+     * @since Servlet 6.2
+     */
+    int SC_EARLY_HINTS = 103;
 
     /**
      * Status code (200) indicating the request succeeded normally.

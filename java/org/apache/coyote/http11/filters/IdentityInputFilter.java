@@ -46,8 +46,7 @@ public class IdentityInputFilter implements InputFilter, ApplicationBufferHandle
     // ----------------------------------------------------- Static Initializer
 
     static {
-        ENCODING.setBytes(ENCODING_NAME.getBytes(StandardCharsets.ISO_8859_1),
-                0, ENCODING_NAME.length());
+        ENCODING.setBytes(ENCODING_NAME.getBytes(StandardCharsets.ISO_8859_1), 0, ENCODING_NAME.length());
     }
 
 
@@ -90,7 +89,7 @@ public class IdentityInputFilter implements InputFilter, ApplicationBufferHandle
     @Override
     public int doRead(ApplicationBufferHandler handler) throws IOException {
 
-        int result = -1;
+        int result;
 
         if (contentLength >= 0) {
             if (remaining > 0) {
@@ -115,6 +114,8 @@ public class IdentityInputFilter implements InputFilter, ApplicationBufferHandle
                 }
                 result = -1;
             }
+        } else {
+            result = -1;
         }
 
         return result;
@@ -126,8 +127,7 @@ public class IdentityInputFilter implements InputFilter, ApplicationBufferHandle
 
 
     /**
-     * {@inheritDoc}
-     * Read the content length from the request.
+     * {@inheritDoc} Read the content length from the request.
      */
     @Override
     public void setRequest(Request request) {
@@ -147,7 +147,7 @@ public class IdentityInputFilter implements InputFilter, ApplicationBufferHandle
 
             int nread = buffer.doRead(this);
             tempRead = null;
-            if (nread > 0 ) {
+            if (nread > 0) {
                 swallowed += nread;
                 remaining = remaining - nread;
                 if (maxSwallowSizeExceeded && swallowed > maxSwallowSize) {

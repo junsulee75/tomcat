@@ -49,8 +49,8 @@ public class Cache {
     private int objectMaxSize = (int) maxSize / OBJECT_MAX_SIZE_FACTOR;
     private CacheStrategy cacheStrategy;
 
-    private LongAdder lookupCount = new LongAdder();
-    private LongAdder hitCount = new LongAdder();
+    private final LongAdder lookupCount = new LongAdder();
+    private final LongAdder hitCount = new LongAdder();
 
     private final ConcurrentMap<String,CachedResource> resourceCache = new ConcurrentHashMap<>();
 
@@ -99,7 +99,11 @@ public class Cache {
                 // there is still benefit in caching the resource metadata
 
                 long delta = cacheEntry.getSize();
-                size.addAndGet(delta);
+                long result = size.addAndGet(delta);
+                if (log.isDebugEnabled()) {
+                    log.debug(sm.getString("cache.sizeTracking.add", Long.toString(delta), cacheEntry, path,
+                            Long.toString(result)));
+                }
 
                 if (size.get() > maxSize) {
                     // Process resources unordered for speed. Trades cache
@@ -175,7 +179,11 @@ public class Cache {
 
                 // Content will not be cached but we still need metadata size
                 long delta = cacheEntry.getSize();
-                size.addAndGet(delta);
+                long result = size.addAndGet(delta);
+                if (log.isDebugEnabled()) {
+                    log.debug(sm.getString("cache.sizeTracking.add", Long.toString(delta), cacheEntry, path,
+                            Long.toString(result)));
+                }
 
                 if (size.get() > maxSize) {
                     // Process resources unordered for speed. Trades cache
@@ -225,11 +233,8 @@ public class Cache {
     private boolean noCache(String path) {
         // Don't cache classes. The class loader handles this.
         // Don't cache JARs. The ResourceSet handles this.
-        if ((path.endsWith(".class") && (path.startsWith("/WEB-INF/classes/") || path.startsWith("/WEB-INF/lib/"))) ||
-                (path.startsWith("/WEB-INF/lib/") && path.endsWith(".jar"))) {
-            return true;
-        }
-        return false;
+        return (path.endsWith(".class") && (path.startsWith("/WEB-INF/classes/") || path.startsWith("/WEB-INF/lib/"))) ||
+            (path.startsWith("/WEB-INF/lib/") && path.endsWith(".jar"));
     }
 
     private long evict(long targetSize, Iterator<CachedResource> iter) {
@@ -261,7 +266,11 @@ public class Cache {
         CachedResource cachedResource = resourceCache.remove(path);
         if (cachedResource != null) {
             long delta = cachedResource.getSize();
-            size.addAndGet(-delta);
+            long result = size.addAndGet(-delta);
+            if (log.isDebugEnabled()) {
+                log.debug(sm.getString("cache.sizeTracking.remove", Long.toString(delta), cachedResource, path,
+                        Long.toString(result)));
+            }
         }
     }
 
@@ -303,9 +312,10 @@ public class Cache {
         if (objectMaxSize * 1024L > Integer.MAX_VALUE) {
             log.warn(sm.getString("cache.objectMaxSizeTooBigBytes", Integer.valueOf(objectMaxSize)));
             this.objectMaxSize = Integer.MAX_VALUE;
+        } else {
+            // Internally bytes, externally kilobytes
+            this.objectMaxSize = objectMaxSize * 1024;
         }
-        // Internally bytes, externally kilobytes
-        this.objectMaxSize = objectMaxSize * 1024;
     }
 
     public int getObjectMaxSize() {

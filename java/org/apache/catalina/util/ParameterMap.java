@@ -16,6 +16,7 @@
  */
 package org.apache.catalina.util;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +38,7 @@ import org.apache.tomcat.util.res.StringManager;
  */
 public final class ParameterMap<K, V> implements Map<K,V>, Serializable {
 
+    @Serial
     private static final long serialVersionUID = 2L;
 
     private final Map<K,V> delegatedMap;
@@ -83,6 +85,19 @@ public final class ParameterMap<K, V> implements Map<K,V>, Serializable {
      */
     public ParameterMap(Map<K,V> map) {
         delegatedMap = new LinkedHashMap<>(map);
+        unmodifiableDelegatedMap = Collections.unmodifiableMap(delegatedMap);
+    }
+
+
+    /**
+     * Optimised constructor for ParameterMap.
+     *
+     * @see "https://bz.apache.org/bugzilla/show_bug.cgi?id=69285"
+     *
+     * @param map Map whose contents are duplicated in the new map
+     */
+    public ParameterMap(ParameterMap<K,V> map) {
+        delegatedMap = new LinkedHashMap<>(map.delegatedMap);
         unmodifiableDelegatedMap = Collections.unmodifiableMap(delegatedMap);
     }
 

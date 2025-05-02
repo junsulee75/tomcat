@@ -77,7 +77,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
      * Endpoint that provides low-level network I/O - must be matched to the ProtocolHandler implementation
      * (ProtocolHandler using NIO, requires NIO Endpoint etc.).
      */
-    private final AbstractEndpoint<S, ?> endpoint;
+    private final AbstractEndpoint<S,?> endpoint;
 
 
     private Handler<S> handler;
@@ -91,7 +91,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
     private ScheduledFuture<?> timeoutFuture = null;
     private ScheduledFuture<?> monitorFuture;
 
-    public AbstractProtocol(AbstractEndpoint<S, ?> endpoint) {
+    public AbstractProtocol(AbstractEndpoint<S,?> endpoint) {
         this.endpoint = endpoint;
         ConnectionHandler<S> cHandler = new ConnectionHandler<>(this);
         getEndpoint().setHandler(cHandler);
@@ -444,10 +444,11 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
 
 
     public void removeWaitingProcessor(Processor processor) {
+        boolean result = waitingProcessors.remove(processor);
         if (getLog().isTraceEnabled()) {
-            getLog().trace(sm.getString("abstractProtocol.waitingProcessor.remove", processor));
+            getLog().trace(
+                    sm.getString("abstractProtocol.waitingProcessor.remove", processor, Boolean.valueOf(result)));
         }
-        waitingProcessors.remove(processor);
     }
 
 
@@ -461,7 +462,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
 
     // ----------------------------------------------- Accessors for sub-classes
 
-    protected AbstractEndpoint<S, ?> getEndpoint() {
+    protected AbstractEndpoint<S,?> getEndpoint() {
         return endpoint;
     }
 
@@ -615,14 +616,14 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
             // Component not pre-registered so register it
             oname = createObjectName();
             if (oname != null) {
-                Registry.getRegistry(null, null).registerComponent(this, oname, null);
+                Registry.getRegistry(null).registerComponent(this, oname, null);
             }
         }
 
         if (this.domain != null) {
             ObjectName rgOname = new ObjectName(domain + ":type=GlobalRequestProcessor,name=" + getName());
             this.rgOname = rgOname;
-            Registry.getRegistry(null, null).registerComponent(getHandler().getGlobal(), rgOname, null);
+            Registry.getRegistry(null).registerComponent(getHandler().getGlobal(), rgOname, null);
         }
 
         String endpointName = getName();
@@ -641,9 +642,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
         }
 
         endpoint.start();
-        monitorFuture = getUtilityExecutor().scheduleWithFixedDelay(() -> {
-            startAsyncTimeout();
-        }, 0, 60, TimeUnit.SECONDS);
+        monitorFuture = getUtilityExecutor().scheduleWithFixedDelay(this::startAsyncTimeout, 0, 60, TimeUnit.SECONDS);
     }
 
 
@@ -735,7 +734,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
         } finally {
             if (oname != null) {
                 if (mserver == null) {
-                    Registry.getRegistry(null, null).unregisterComponent(oname);
+                    Registry.getRegistry(null).unregisterComponent(oname);
                 } else {
                     // Possibly registered with a different MBeanServer
                     try {
@@ -748,7 +747,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
 
             ObjectName rgOname = getGlobalRequestProcessorMBeanName();
             if (rgOname != null) {
-                Registry.getRegistry(null, null).unregisterComponent(rgOname);
+                Registry.getRegistry(null).unregisterComponent(rgOname);
             }
         }
     }
@@ -852,7 +851,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                     String negotiatedProtocol = wrapper.getNegotiatedProtocol();
                     // OpenSSL typically returns null whereas JSSE typically
                     // returns "" when no protocol is negotiated
-                    if (negotiatedProtocol != null && negotiatedProtocol.length() > 0) {
+                    if (negotiatedProtocol != null && !negotiatedProtocol.isEmpty()) {
                         UpgradeProtocol upgradeProtocol = getProtocol().getNegotiatedProtocol(negotiatedProtocol);
                         if (upgradeProtocol != null) {
                             processor = upgradeProtocol.getProcessor(wrapper, getProtocol().getAdapter());
@@ -899,7 +898,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
 
                 processor.setSslSupport(wrapper.getSslSupport());
 
-                SocketState state = SocketState.CLOSED;
+                SocketState state;
                 do {
                     state = processor.process(wrapper, status);
 
@@ -927,7 +926,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                                 state = SocketState.CLOSED;
                             }
                         } else {
-                            HttpUpgradeHandler httpUpgradeHandler = upgradeToken.getHttpUpgradeHandler();
+                            HttpUpgradeHandler httpUpgradeHandler = upgradeToken.httpUpgradeHandler();
                             // Release the Http11 processor to be re-used
                             release(processor);
                             // Create the upgrade processor
@@ -942,14 +941,14 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                             // This cast should be safe. If it fails the error
                             // handling for the surrounding try/catch will deal with
                             // it.
-                            if (upgradeToken.getInstanceManager() == null) {
+                            if (upgradeToken.instanceManager() == null) {
                                 httpUpgradeHandler.init((WebConnection) processor);
                             } else {
-                                ClassLoader oldCL = upgradeToken.getContextBind().bind(null);
+                                ClassLoader oldCL = upgradeToken.contextBind().bind(null);
                                 try {
                                     httpUpgradeHandler.init((WebConnection) processor);
                                 } finally {
-                                    upgradeToken.getContextBind().unbind(oldCL);
+                                    upgradeToken.contextBind().unbind(oldCL);
                                 }
                             }
                             if (httpUpgradeHandler instanceof InternalHttpUpgradeHandler) {
@@ -1005,14 +1004,14 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                     // Connection closed. OK to recycle the processor.
                     // Processors handling upgrades require additional clean-up
                     // before release.
-                    if (processor != null && processor.isUpgrade()) {
+                    if (processor.isUpgrade()) {
                         UpgradeToken upgradeToken = processor.getUpgradeToken();
-                        HttpUpgradeHandler httpUpgradeHandler = upgradeToken.getHttpUpgradeHandler();
-                        InstanceManager instanceManager = upgradeToken.getInstanceManager();
+                        HttpUpgradeHandler httpUpgradeHandler = upgradeToken.httpUpgradeHandler();
+                        InstanceManager instanceManager = upgradeToken.instanceManager();
                         if (instanceManager == null) {
                             httpUpgradeHandler.destroy();
                         } else {
-                            ClassLoader oldCL = upgradeToken.getContextBind().bind(null);
+                            ClassLoader oldCL = upgradeToken.contextBind().bind(null);
                             try {
                                 httpUpgradeHandler.destroy();
                             } finally {
@@ -1022,7 +1021,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                                     ExceptionUtils.handleThrowable(e);
                                     getLog().error(sm.getString("abstractConnectionHandler.error"), e);
                                 }
-                                upgradeToken.getContextBind().unbind(oldCL);
+                                upgradeToken.contextBind().unbind(oldCL);
                             }
                         }
                     }
@@ -1135,7 +1134,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                         if (getLog().isTraceEnabled()) {
                             getLog().trace("Register [" + processor + "] as [" + rpName + "]");
                         }
-                        Registry.getRegistry(null, null).registerComponent(rp, rpName, null);
+                        Registry.getRegistry(null).registerComponent(rp, rpName, null);
                         rp.setRpName(rpName);
                     } catch (Exception e) {
                         getLog().warn(sm.getString("abstractProtocol.processorRegisterError"), e);
@@ -1159,7 +1158,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
                         if (getLog().isTraceEnabled()) {
                             getLog().trace("Unregister [" + rpName + "]");
                         }
-                        Registry.getRegistry(null, null).unregisterComponent(rpName);
+                        Registry.getRegistry(null).unregisterComponent(rpName);
                         rp.setRpName(null);
                     } catch (Exception e) {
                         getLog().warn(sm.getString("abstractProtocol.processorUnregisterError"), e);
@@ -1199,7 +1198,7 @@ public abstract class AbstractProtocol<S> implements ProtocolHandler, MBeanRegis
         @Override
         public boolean push(Processor processor) {
             int cacheSize = handler.getProtocol().getProcessorCache();
-            boolean offer = cacheSize == -1 ? true : size.get() < cacheSize;
+            boolean offer = cacheSize == -1 || size.get() < cacheSize;
             // avoid over growing our cache or add after we have stopped
             boolean result = false;
             if (offer) {

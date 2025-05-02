@@ -112,7 +112,7 @@ public class SingleSignOn extends ValveBase {
      * @param cookieDomain cookie domain name
      */
     public void setCookieDomain(String cookieDomain) {
-        if (cookieDomain != null && cookieDomain.trim().length() == 0) {
+        if (cookieDomain != null && cookieDomain.trim().isEmpty()) {
             this.cookieDomain = null;
         } else {
             this.cookieDomain = cookieDomain;
@@ -225,7 +225,7 @@ public class SingleSignOn extends ValveBase {
             containerLog.trace(sm.getString("singleSignOn.debug.cookieCheck"));
         }
         Cookie cookie = null;
-        Cookie cookies[] = request.getCookies();
+        Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie value : cookies) {
                 if (cookieName.equals(value.getName())) {
@@ -299,7 +299,7 @@ public class SingleSignOn extends ValveBase {
      * Process a session destroyed event by removing references to that session from the caches and - if the session
      * destruction is the result of a logout - destroy the associated SSO session.
      *
-     * @param ssoId   The ID of the SSO session which which the destroyed session was associated
+     * @param ssoId   The id of the SSO session with which the destroyed session was associated
      * @param session The session that has been destroyed
      */
     public void sessionDestroyed(String ssoId, Session session) {
@@ -313,7 +313,7 @@ public class SingleSignOn extends ValveBase {
         // session was logged out, we'll log out of all session associated with
         // the SSO.
         if (((session.getMaxInactiveInterval() > 0) &&
-                (session.getIdleTimeInternal() >= session.getMaxInactiveInterval() * 1000)) ||
+                (session.getIdleTimeInternal() >= session.getMaxInactiveInterval() * 1000L)) ||
                 (!session.getManager().getContext().getState().isAvailable())) {
             if (containerLog.isDebugEnabled()) {
                 containerLog.debug(sm.getString("singleSignOn.debug.sessionTimeout", ssoId, session));
@@ -384,7 +384,7 @@ public class SingleSignOn extends ValveBase {
 
         // Expire any associated sessions
         Set<SingleSignOnSessionKey> ssoKeys = sso.findSessions();
-        if (ssoKeys.size() == 0) {
+        if (ssoKeys.isEmpty()) {
             if (containerLog.isDebugEnabled()) {
                 containerLog.debug(sm.getString("singleSignOn.debug.deregisterNone", ssoId));
             }
@@ -423,7 +423,7 @@ public class SingleSignOn extends ValveBase {
             containerLog.warn(sm.getString("singleSignOn.sessionExpire.managerNotFound", key));
             return;
         }
-        Session session = null;
+        Session session;
         try {
             session = manager.findSession(key.getSessionId());
         } catch (IOException e) {
@@ -556,9 +556,9 @@ public class SingleSignOn extends ValveBase {
         // Remove the inactive session from SingleSignOnEntry
         entry.removeSession(session);
 
-        // If there are not sessions left in the SingleSignOnEntry,
+        // If there are no sessions left in the SingleSignOnEntry,
         // deregister the entry.
-        if (entry.findSessions().size() == 0) {
+        if (entry.findSessions().isEmpty()) {
             deregister(ssoId);
         }
     }

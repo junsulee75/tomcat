@@ -66,8 +66,8 @@ import org.apache.tomcat.util.threads.VirtualThreadExecutor;
 
 /**
  * @param <S> The type used by the socket wrapper associated with this endpoint.
- *            May be the same as U.
- * @param <U> The type of the underlying socket used by this endpoint. May be
+ *            Might be the same as U.
+ * @param <U> The type of the underlying socket used by this endpoint. Might be
  *            the same as S.
  *
  * @author Mladen Turk
@@ -288,7 +288,7 @@ public abstract class AbstractEndpoint<S,U> {
      */
     public void addSslHostConfig(SSLHostConfig sslHostConfig, boolean replace) throws IllegalArgumentException {
         String key = sslHostConfig.getHostName();
-        if (key == null || key.length() == 0) {
+        if (key == null || key.isEmpty()) {
             throw new IllegalArgumentException(sm.getString("endpoint.noSslHostName"));
         }
         if (bindState != BindState.UNBOUND && bindState != BindState.SOCKET_CLOSED_ON_STOP &&
@@ -311,7 +311,7 @@ public abstract class AbstractEndpoint<S,U> {
             // Do not release any SSLContexts associated with a replaced
             // SSLHostConfig. They may still be in used by existing connections
             // and releasing them would break the connection at best. Let GC
-            // handle the clean up.
+            // handle the cleanup.
         } else {
             SSLHostConfig duplicate = sslHostConfigs.putIfAbsent(key, sslHostConfig);
             if (duplicate != null) {
@@ -334,9 +334,9 @@ public abstract class AbstractEndpoint<S,U> {
         if (hostName == null) {
             return null;
         }
-        // Host names are case insensitive but stored/processed in lower case
+        // Host names are case-insensitive but stored/processed in lower case
         // internally because they are used as keys in a ConcurrentMap where
-        // keys are compared in a case sensitive manner.
+        // keys are compared in a case-sensitive manner.
         String hostNameLower = hostName.toLowerCase(Locale.ENGLISH);
         if (hostNameLower.equals(getDefaultSSLHostConfigName())) {
             throw new IllegalArgumentException(
@@ -355,9 +355,9 @@ public abstract class AbstractEndpoint<S,U> {
      *                 reloaded. This must match a current SSL host
      */
     public void reloadSslHostConfig(String hostName) {
-        // Host names are case insensitive but stored/processed in lower case
+        // Host names are case-insensitive but stored/processed in lower case
         // internally because they are used as keys in a ConcurrentMap where
-        // keys are compared in a case sensitive manner.
+        // keys are compared in a case-sensitive manner.
         // This method can be called via various paths so convert the supplied
         // host name to lower case here to ensure the conversion occurs whatever
         // the call path.
@@ -524,14 +524,14 @@ public abstract class AbstractEndpoint<S,U> {
         SSLParameters sslParameters = engine.getSSLParameters();
         sslParameters.setUseCipherSuitesOrder(sslHostConfig.getHonorCipherOrder());
         if (clientRequestedApplicationProtocols != null
-                && clientRequestedApplicationProtocols.size() > 0
-                && negotiableProtocols.size() > 0) {
+                && !clientRequestedApplicationProtocols.isEmpty()
+                && !negotiableProtocols.isEmpty()) {
             // Only try to negotiate if both client and server have at least
             // one protocol in common
             // Note: Tomcat does not explicitly negotiate http/1.1
             List<String> commonProtocols = new ArrayList<>(negotiableProtocols);
             commonProtocols.retainAll(clientRequestedApplicationProtocols);
-            if (commonProtocols.size() > 0) {
+            if (!commonProtocols.isEmpty()) {
                 String[] commonProtocolsArray = commonProtocols.toArray(new String[0]);
                 sslParameters.setApplicationProtocols(commonProtocolsArray);
             }
@@ -1104,7 +1104,7 @@ public abstract class AbstractEndpoint<S,U> {
         negotiableProtocols.add(negotiableProtocol);
     }
     public boolean hasNegotiableProtocols() {
-        return (negotiableProtocols.size() > 0);
+        return (!negotiableProtocols.isEmpty());
     }
 
 
@@ -1117,9 +1117,9 @@ public abstract class AbstractEndpoint<S,U> {
 
 
     /**
-     * Attributes provide a way for configuration to be passed to sub-components
+     * Attributes provide a way for configuration to be passed to subcomponents
      * without the {@link org.apache.coyote.ProtocolHandler} being aware of the
-     * properties available on those sub-components.
+     * properties available on those subcomponents.
      */
     protected HashMap<String, Object> attributes = new HashMap<>();
 
@@ -1127,7 +1127,7 @@ public abstract class AbstractEndpoint<S,U> {
      * Generic property setter called when a property for which a specific
      * setter already exists within the
      * {@link org.apache.coyote.ProtocolHandler} needs to be made available to
-     * sub-components. The specific setter will call this method to populate the
+     * subcomponents. The specific setter will call this method to populate the
      * attributes.
      *
      * @param name  Name of property to set
@@ -1140,7 +1140,7 @@ public abstract class AbstractEndpoint<S,U> {
         attributes.put(name, value);
     }
     /**
-     * Used by sub-components to retrieve configuration information.
+     * Used by subcomponents to retrieve configuration information.
      *
      * @param key The name of the property for which the value should be
      *            retrieved
@@ -1191,15 +1191,12 @@ public abstract class AbstractEndpoint<S,U> {
     public int getCurrentThreadCount() {
         Executor executor = this.executor;
         if (executor != null) {
-            if (executor instanceof ThreadPoolExecutor) {
-                return ((ThreadPoolExecutor) executor).getPoolSize();
-            } else if (executor instanceof java.util.concurrent.ThreadPoolExecutor) {
-                return ((java.util.concurrent.ThreadPoolExecutor) executor).getPoolSize();
-            } else if (executor instanceof ResizableExecutor) {
-                return ((ResizableExecutor) executor).getPoolSize();
-            } else {
-                return -1;
-            }
+            return switch (executor) {
+                case ThreadPoolExecutor threadPoolExecutor -> threadPoolExecutor.getPoolSize();
+                case java.util.concurrent.ThreadPoolExecutor threadPoolExecutor -> threadPoolExecutor.getPoolSize();
+                case ResizableExecutor resizableExecutor -> resizableExecutor.getPoolSize();
+                default -> -1;
+            };
         } else {
             return -2;
         }
@@ -1213,15 +1210,12 @@ public abstract class AbstractEndpoint<S,U> {
     public int getCurrentThreadsBusy() {
         Executor executor = this.executor;
         if (executor != null) {
-            if (executor instanceof ThreadPoolExecutor) {
-                return ((ThreadPoolExecutor) executor).getActiveCount();
-            } else if (executor instanceof java.util.concurrent.ThreadPoolExecutor) {
-                return ((java.util.concurrent.ThreadPoolExecutor) executor).getActiveCount();
-            } else if (executor instanceof ResizableExecutor) {
-                return ((ResizableExecutor) executor).getActiveCount();
-            } else {
-                return -1;
-            }
+            return switch (executor) {
+                case ThreadPoolExecutor threadPoolExecutor -> threadPoolExecutor.getActiveCount();
+                case java.util.concurrent.ThreadPoolExecutor threadPoolExecutor -> threadPoolExecutor.getActiveCount();
+                case ResizableExecutor resizableExecutor -> resizableExecutor.getActiveCount();
+                default -> -1;
+            };
         } else {
             return -2;
         }
@@ -1254,10 +1248,8 @@ public abstract class AbstractEndpoint<S,U> {
         Executor executor = this.executor;
         if (executor != null && internalExecutor) {
             this.executor = null;
-            if (executor instanceof ThreadPoolExecutor) {
+            if (executor instanceof ThreadPoolExecutor tpe) {
                 //this is our internal one, so we need to shut it down
-                @SuppressWarnings("resource")
-                ThreadPoolExecutor tpe = (ThreadPoolExecutor) executor;
                 tpe.shutdownNow();
                 long timeout = getExecutorTerminationTimeoutMillis();
                 if (timeout > 0) {
@@ -1285,7 +1277,7 @@ public abstract class AbstractEndpoint<S,U> {
             return;
         }
 
-        InetSocketAddress unlockAddress = null;
+        InetSocketAddress unlockAddress;
         InetSocketAddress localAddress = null;
         try {
             localAddress = getLocalAddress();
@@ -1303,7 +1295,7 @@ public abstract class AbstractEndpoint<S,U> {
             try (java.net.Socket s = new java.net.Socket()) {
                 // Never going to read from this socket so the timeout doesn't matter. Use the unlock timeout.
                 s.setSoTimeout(getSocketProperties().getUnlockTimeout());
-                // Newer MacOS versions (e.g. Ventura 13.2) appear to linger for ~1s on close when linger is disabled.
+                // Newer macOS versions (e.g. Ventura 13.2) appear to linger for ~1s on close when linger is disabled.
                 // That causes delays when running the unit tests. Explicitly enabling linger but with a timeout of
                 // zero seconds seems to fix the issue.
                 s.setSoLinger(true, 0);
@@ -1488,12 +1480,12 @@ public abstract class AbstractEndpoint<S,U> {
         if (this.domain != null) {
             // Register endpoint (as ThreadPool - historical name)
             oname = new ObjectName(domain + ":type=ThreadPool,name=\"" + getName() + "\"");
-            Registry.getRegistry(null, null).registerComponent(this, oname, null);
+            Registry.getRegistry(null).registerComponent(this, oname, null);
 
             ObjectName socketPropertiesOname = new ObjectName(domain +
                     ":type=SocketProperties,name=\"" + getName() + "\"");
             socketProperties.setObjectName(socketPropertiesOname);
-            Registry.getRegistry(null, null).registerComponent(socketProperties, socketPropertiesOname, null);
+            Registry.getRegistry(null).registerComponent(socketProperties, socketPropertiesOname, null);
 
             for (SSLHostConfig sslHostConfig : findSslHostConfigs()) {
                 registerJmx(sslHostConfig);
@@ -1507,13 +1499,13 @@ public abstract class AbstractEndpoint<S,U> {
             // Before init the domain is null
             return;
         }
-        ObjectName sslOname = null;
+        ObjectName sslOname;
         try {
             sslOname = new ObjectName(domain + ":type=SSLHostConfig,ThreadPool=\"" +
                     getName() + "\",name=" + ObjectName.quote(sslHostConfig.getHostName()));
             sslHostConfig.setObjectName(sslOname);
             try {
-                Registry.getRegistry(null, null).registerComponent(sslHostConfig, sslOname, null);
+                Registry.getRegistry(null).registerComponent(sslHostConfig, sslOname, null);
             } catch (Exception e) {
                 getLog().warn(sm.getString("endpoint.jmxRegistrationFailed", sslOname), e);
             }
@@ -1523,7 +1515,7 @@ public abstract class AbstractEndpoint<S,U> {
         }
 
         for (SSLHostConfigCertificate sslHostConfigCert : sslHostConfig.getCertificates()) {
-            ObjectName sslCertOname = null;
+            ObjectName sslCertOname;
             try {
                 sslCertOname = new ObjectName(domain +
                         ":type=SSLHostConfigCertificate,ThreadPool=\"" + getName() +
@@ -1531,7 +1523,7 @@ public abstract class AbstractEndpoint<S,U> {
                         ",name=" + sslHostConfigCert.getType());
                 sslHostConfigCert.setObjectName(sslCertOname);
                 try {
-                    Registry.getRegistry(null, null).registerComponent(
+                    Registry.getRegistry(null).registerComponent(
                             sslHostConfigCert, sslCertOname, null);
                 } catch (Exception e) {
                     getLog().warn(sm.getString("endpoint.jmxRegistrationFailed", sslCertOname), e);
@@ -1545,7 +1537,7 @@ public abstract class AbstractEndpoint<S,U> {
 
 
     private void unregisterJmx(SSLHostConfig sslHostConfig) {
-        Registry registry = Registry.getRegistry(null, null);
+        Registry registry = Registry.getRegistry(null);
         registry.unregisterComponent(sslHostConfig.getObjectName());
         for (SSLHostConfigCertificate sslHostConfigCert : sslHostConfig.getCertificates()) {
             registry.unregisterComponent(sslHostConfigCert.getObjectName());
@@ -1609,7 +1601,7 @@ public abstract class AbstractEndpoint<S,U> {
             unbind();
             bindState = BindState.UNBOUND;
         }
-        Registry registry = Registry.getRegistry(null, null);
+        Registry registry = Registry.getRegistry(null);
         registry.unregisterComponent(oname);
         registry.unregisterComponent(socketProperties.getObjectName());
         for (SSLHostConfig sslHostConfig : findSslHostConfigs()) {
@@ -1686,7 +1678,7 @@ public abstract class AbstractEndpoint<S,U> {
             // Signal to any multiplexed protocols (HTTP/2) that they may wish
             // to stop accepting new streams
             getHandler().pause();
-            // Update the bindState. This has the side-effect of disabling
+            // Update the bindState. This has the side effect of disabling
             // keep-alive for any in-progress connections
             bindState = BindState.SOCKET_CLOSED_ON_STOP;
             try {

@@ -16,7 +16,9 @@
  */
 package org.apache.tomcat.util.descriptor.web;
 
+import java.io.Serial;
 import java.io.Serializable;
+import java.util.Objects;
 
 import org.apache.tomcat.util.buf.UDecoder;
 
@@ -29,6 +31,7 @@ import org.apache.tomcat.util.buf.UDecoder;
  */
 public class ErrorPage extends XmlEncodingBase implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 2L;
 
 
@@ -121,12 +124,7 @@ public class ErrorPage extends XmlEncodingBase implements Serializable {
      * @param location The new location
      */
     public void setLocation(String location) {
-
-        //        if ((location == null) || !location.startsWith("/"))
-        //            throw new IllegalArgumentException
-        //                ("Error Page Location must start with a '/'");
         this.location = UDecoder.URLDecode(location, getCharset());
-
     }
 
 
@@ -153,11 +151,7 @@ public class ErrorPage extends XmlEncodingBase implements Serializable {
     }
 
     public String getName() {
-        if (exceptionType == null) {
-            return Integer.toString(errorCode);
-        } else {
-            return exceptionType;
-        }
+        return Objects.requireNonNullElseGet(exceptionType, () -> Integer.toString(errorCode));
     }
 
 }

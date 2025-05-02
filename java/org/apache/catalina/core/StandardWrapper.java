@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -99,7 +100,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     protected long available = 0L;
 
     /**
-     * The broadcaster that sends j2ee notifications.
+     * The broadcaster that sends EE notifications.
      */
     protected final NotificationBroadcasterSupport broadcaster;
 
@@ -198,7 +199,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
     protected boolean swallowOutput = false;
 
     // To support jmx attributes
-    protected StandardWrapperValve swValve;
+    StandardWrapperValve swValve;
     protected long loadTime = 0;
     protected int classLoadTime = 0;
 
@@ -422,15 +423,20 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
             for (int i = 0; methods != null && i < methods.length; i++) {
                 Method m = methods[i];
 
-                if (m.getName().equals("doGet")) {
-                    allow.add("GET");
-                    allow.add("HEAD");
-                } else if (m.getName().equals("doPost")) {
-                    allow.add("POST");
-                } else if (m.getName().equals("doPut")) {
-                    allow.add("PUT");
-                } else if (m.getName().equals("doDelete")) {
-                    allow.add("DELETE");
+                switch (m.getName()) {
+                    case "doGet":
+                        allow.add("GET");
+                        allow.add("HEAD");
+                        break;
+                    case "doPost":
+                        allow.add("POST");
+                        break;
+                    case "doPut":
+                        allow.add("PUT");
+                        break;
+                    case "doDelete":
+                        allow.add("DELETE");
+                        break;
                 }
             }
         }
@@ -476,7 +482,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
      */
     public static Throwable getRootCause(ServletException e) {
         Throwable rootCause = e;
-        Throwable rootCauseCheck = null;
+        Throwable rootCauseCheck;
         // Extra aggressive rootCause finding
         int loops = 0;
         do {
@@ -642,7 +648,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
 
     @Override
     public String findSecurityReference(String name) {
-        String reference = null;
+        String reference;
 
         referencesLock.readLock().lock();
         try {
@@ -652,8 +658,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         }
 
         // If not specified on the Wrapper, check the Context
-        if (getParent() instanceof Context) {
-            Context context = (Context) getParent();
+        if (getParent() instanceof Context context) {
             if (reference != null) {
                 reference = context.findRoleMapping(reference);
             } else {
@@ -708,7 +713,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
 
             try {
                 jspMonitorON = new ObjectName(oname.toString());
-                Registry.getRegistry(null, null).registerComponent(instance, jspMonitorON, null);
+                Registry.getRegistry(null).registerComponent(instance, jspMonitorON, null);
             } catch (Exception ex) {
                 log.warn(sm.getString("standardWrapper.jspMonitorError", instance));
             }
@@ -754,18 +759,18 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 // Restore the context ClassLoader
                 throw new ServletException(sm.getString("standardWrapper.notServlet", servletClass), e);
             } catch (Throwable e) {
-                e = ExceptionUtils.unwrapInvocationTargetException(e);
-                ExceptionUtils.handleThrowable(e);
+                Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(e);
+                ExceptionUtils.handleThrowable(throwable);
                 unavailable(null);
 
                 // Added extra log statement for Bugzilla 36630:
                 // https://bz.apache.org/bugzilla/show_bug.cgi?id=36630
                 if (log.isDebugEnabled()) {
-                    log.debug(sm.getString("standardWrapper.instantiate", servletClass), e);
+                    log.debug(sm.getString("standardWrapper.instantiate", servletClass), throwable);
                 }
 
                 // Restore the context ClassLoader
-                throw new ServletException(sm.getString("standardWrapper.instantiate", servletClass), e);
+                throw new ServletException(sm.getString("standardWrapper.instantiate", servletClass), throwable);
             }
 
             if (multipartConfigElement == null) {
@@ -792,7 +797,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         } finally {
             if (swallowOutput) {
                 String log = SystemLogHandler.stopCapture();
-                if (log != null && log.length() > 0) {
+                if (log != null && !log.isEmpty()) {
                     if (getServletContext() != null) {
                         getServletContext().log(log);
                     } else {
@@ -930,11 +935,11 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
             try {
                 instance.destroy();
             } catch (Throwable t) {
-                t = ExceptionUtils.unwrapInvocationTargetException(t);
-                ExceptionUtils.handleThrowable(t);
+                Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
+                ExceptionUtils.handleThrowable(throwable);
                 fireContainerEvent("unload", this);
                 unloading = false;
-                throw new ServletException(sm.getString("standardWrapper.destroyException", getName()), t);
+                throw new ServletException(sm.getString("standardWrapper.destroyException", getName()), throwable);
             } finally {
                 // Annotation processing
                 if (!((Context) getParent()).getIgnoreAnnotations()) {
@@ -948,7 +953,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 // Write captured output
                 if (swallowOutput) {
                     String log = SystemLogHandler.stopCapture();
-                    if (log != null && log.length() > 0) {
+                    if (log != null && !log.isEmpty()) {
                         if (getServletContext() != null) {
                             getServletContext().log(log);
                         } else {
@@ -965,7 +970,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         instance = null;
 
         if (isJspServlet && jspMonitorON != null) {
-            Registry.getRegistry(null, null).unregisterComponent(jspMonitorON);
+            Registry.getRegistry(null).unregisterComponent(jspMonitorON);
         }
 
         unloading = false;
@@ -1184,11 +1189,11 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
         if (this.getObjectName() != null) {
             Notification notification = new Notification("j2ee.state.stopped", this.getObjectName(), sequenceNumber++);
             broadcaster.sendNotification(notification);
-        }
 
-        // Send j2ee.object.deleted notification
-        Notification notification = new Notification("j2ee.object.deleted", this.getObjectName(), sequenceNumber++);
-        broadcaster.sendNotification(notification);
+            // Send j2ee.object.deleted notification
+            notification = new Notification("j2ee.object.deleted", this.getObjectName(), sequenceNumber++);
+            broadcaster.sendNotification(notification);
+        }
 
     }
 
@@ -1218,11 +1223,7 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
 
         StringBuilder keyProperties = new StringBuilder(",WebModule=//");
         String hostName = getParent().getParent().getName();
-        if (hostName == null) {
-            keyProperties.append("DEFAULT");
-        } else {
-            keyProperties.append(hostName);
-        }
+        keyProperties.append(Objects.requireNonNullElse(hostName, "DEFAULT"));
 
         String contextName = getParent().getName();
         if (!contextName.startsWith("/")) {

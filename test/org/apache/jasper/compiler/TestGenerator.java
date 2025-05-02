@@ -322,7 +322,7 @@ public class TestGenerator extends TomcatBaseTest {
             }
         }
         if (!removeBlankLines && blankLineCount == 0) {
-            Assert.fail("TrimSpaceOptions.EXTENDED not configured but balnk lines have been removed");
+            Assert.fail("TrimSpaceOptions.EXTENDED not configured but blank lines have been removed");
         } else if (removeBlankLines && blankLineCount > 0) {
             Assert.fail("TrimSpaceOptions.EXTENDED does not allow the line to be just a new line character");
         }
@@ -391,6 +391,49 @@ public class TestGenerator extends TomcatBaseTest {
     @Test
     public void testJspIdDocument() throws Exception {
         doTestJspId(true);
+    }
+
+    @Test
+    public void testNonstandardSets() throws Exception {
+        getTomcatInstanceTestWebapp(true, true);
+
+        // This should break all subsequent requests
+        ByteChunk body = new ByteChunk();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-01.jsp", body, null);
+        Assert.assertEquals("\n\n\n"
+                + "pageContext value=testValue\n"
+                + "request value=null\n"
+                + "session value=null\n"
+                + "application value=null", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-02.jsp", body, null);
+        Assert.assertEquals("\n\n\n"
+                + "pageContext value=testValue\n"
+                + "request value=null\n"
+                + "session value=null\n"
+                + "application value=null", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-03.jsp", body, null);
+        Assert.assertEquals("\n\n\n"
+                + "pageContext value=null\n"
+                + "request value=testValue\n"
+                + "session value=null\n"
+                + "application value=null", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-04.jsp", body, null);
+        Assert.assertEquals("\n\n\n"
+                + "pageContext value=null\n"
+                + "request value=null\n"
+                + "session value=testValue\n"
+                + "application value=null", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-05.jsp", body, null);
+        Assert.assertEquals("\n\n\n"
+                + "pageContext value=null\n"
+                + "request value=null\n"
+                + "session value=null\n"
+                + "application value=testValue", body.toString());
+        body.recycle();
     }
 
     private void doTestJspId(boolean document) throws Exception {
@@ -542,6 +585,25 @@ public class TestGenerator extends TomcatBaseTest {
 
         public void setData(String data) {
             this.data = data;
+        }
+    }
+
+    private static boolean tagTesterTagReleaseReleased = false;
+
+    public static class TesterTagRelease extends TesterTag {
+        private String data;
+
+        public String getData() {
+            return data;
+        }
+
+        public void setData(String data) {
+            this.data = data;
+        }
+
+        @Override
+        public void release() {
+            tagTesterTagReleaseReleased = true;
         }
     }
 
@@ -952,6 +1014,69 @@ public class TestGenerator extends TomcatBaseTest {
         Assert.assertEquals(body.toString(), HttpServletResponse.SC_OK, rc);
     }
 
+    @Test
+    public void testBug69508() throws Exception {
+        getTomcatInstanceTestWebapp(false, true);
+
+        ByteChunk body = new ByteChunk();
+        int rc = getUrl("http://localhost:" + getPort() + "/test/bug6nnnn/bug69508.jsp?init=InitCommand", body, null);
+
+        String text = body.toString();
+        Assert.assertEquals(text, HttpServletResponse.SC_OK, rc);
+        // include page URL with param cmd
+        Assert.assertTrue(text, text.contains("<p>cmd - someCommand</p>"));
+        Assert.assertTrue(text, text.contains("<p>param1 - value1</p>"));
+        Assert.assertTrue(text, text.contains("<p>cmd - someCommandAbs</p>"));
+        Assert.assertTrue(text, text.contains("<p>param1 - value1Abs</p>"));
+        // include page URL without param
+        Assert.assertTrue(text, text.contains("<p>param2 - value2</p>"));
+        Assert.assertTrue(text, text.contains("<p>param2 - value2Abs</p>"));
+
+        Assert.assertTrue(text, text.contains("<p>param3 - InitCommand</p>"));
+        Assert.assertTrue(text, text.contains("<p>param3 - InitCommandAbs</p>"));
+
+        Assert.assertTrue(text, text.contains("<p>param4 - value4</p>"));
+        Assert.assertTrue(text, text.contains("<p>param4 - value4Abs</p>"));
+
+        Assert.assertTrue(text, text.contains("<p>param5 - InitCommand</p>"));
+        Assert.assertTrue(text, text.contains("<p>param5 - InitCommandAbs</p>"));
+
+        Assert.assertTrue(text, text.contains("<p>param6 - value6</p>"));
+        Assert.assertTrue(text, text.contains("<p>param6 - value6Abs</p>"));
+    }
+
+    @Test
+    public void testTagReleaseWithPooling() throws Exception {
+        doTestTagRelease(true);
+    }
+
+    @Test
+    public void testTagReleaseWithoutPooling() throws Exception {
+        doTestTagRelease(false);
+    }
+
+    public void doTestTagRelease(boolean enablePooling) throws Exception {
+        tagTesterTagReleaseReleased = false;
+        Tomcat tomcat = getTomcatInstance();
+
+        File appDir = new File("test/webapp");
+        Context ctxt = tomcat.addContext("", appDir.getAbsolutePath());
+        ctxt.addServletContainerInitializer(new JasperInitializer(), null);
+
+        Tomcat.initWebappDefaults(ctxt);
+        Wrapper w = (Wrapper) ctxt.findChild("jsp");
+        w.addInitParameter("enablePooling", String.valueOf(enablePooling));
+
+        tomcat.start();
+
+        getUrl("http://localhost:" + getPort() + "/jsp/generator/release.jsp");
+        if (enablePooling) {
+            Assert.assertFalse(tagTesterTagReleaseReleased);
+        } else {
+            Assert.assertTrue(tagTesterTagReleaseReleased);
+        }
+    }
+
     private void doTestJsp(String jspName) throws Exception {
         doTestJsp(jspName, HttpServletResponse.SC_OK);
     }
@@ -963,5 +1088,48 @@ public class TestGenerator extends TomcatBaseTest {
         int rc = getUrl("http://localhost:" + getPort() + "/test/jsp/generator/" + jspName, body, null);
 
         Assert.assertEquals(body.toString(), expectedResponseCode, rc);
+    }
+
+    @Test
+    public void testNonstandardRemoves() throws Exception {
+        getTomcatInstanceTestWebapp(true, true);
+
+        // This should break all subsequent requests
+        ByteChunk body = new ByteChunk();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-01.jsp", body, null);
+        Assert.assertEquals("\n\n\n\n\n\n\n"
+                + "pageContext value=null\n"
+                + "request value=testValue\n"
+                + "session value=testValue\n"
+                + "application value=testValue", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-02.jsp", body, null);
+        Assert.assertEquals("\n\n\n\n\n\n\n"
+                + "pageContext value=testValue\n"
+                + "request value=null\n"
+                + "session value=testValue\n"
+                + "application value=testValue", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-03.jsp", body, null);
+        Assert.assertEquals("\n\n\n\n\n\n\n"
+                + "pageContext value=testValue\n"
+                + "request value=testValue\n"
+                + "session value=null\n"
+                + "application value=testValue", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-04.jsp", body, null);
+        Assert.assertEquals("\n\n\n\n\n\n\n"
+                + "pageContext value=testValue\n"
+                + "request value=testValue\n"
+                + "session value=testValue\n"
+                + "application value=null", body.toString());
+        body.recycle();
+        getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-05.jsp", body, null);
+        Assert.assertEquals("\n\n\n\n\n\n\n"
+                + "pageContext value=null\n"
+                + "request value=null\n"
+                + "session value=null\n"
+                + "application value=null", body.toString());
+        body.recycle();
     }
 }

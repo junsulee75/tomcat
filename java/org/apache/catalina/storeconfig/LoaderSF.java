@@ -28,7 +28,7 @@ import org.apache.juli.logging.LogFactory;
  */
 public class LoaderSF extends StoreFactoryBase {
 
-    private static Log log = LogFactory.getLog(LoaderSF.class);
+    private static final Log log = LogFactory.getLog(LoaderSF.class);
 
     @Override
     public void store(PrintWriter aWriter, int indent, Object aElement) throws Exception {
@@ -60,14 +60,10 @@ public class LoaderSF extends StoreFactoryBase {
      */
     protected boolean isDefaultLoader(Loader loader) {
 
-        if (!(loader instanceof WebappLoader)) {
+        if (!(loader instanceof WebappLoader wloader)) {
             return false;
         }
-        WebappLoader wloader = (WebappLoader) loader;
-        if ((wloader.getDelegate() != false) ||
-                !wloader.getLoaderClass().equals("org.apache.catalina.loader.WebappClassLoader")) {
-            return false;
-        }
-        return true;
+        return (!wloader.getDelegate()) &&
+            wloader.getLoaderClass().equals("org.apache.catalina.loader.WebappClassLoader");
     }
 }

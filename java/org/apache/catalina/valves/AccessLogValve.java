@@ -30,6 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.TimeZone;
 
 import org.apache.catalina.LifecycleException;
@@ -317,11 +318,7 @@ public class AccessLogValve extends AbstractAccessLogValve {
      */
     public void setFileDateFormat(String fileDateFormat) {
         String newFormat;
-        if (fileDateFormat == null) {
-            newFormat = "";
-        } else {
-            newFormat = fileDateFormat;
-        }
+        newFormat = Objects.requireNonNullElse(fileDateFormat, "");
         this.fileDateFormat = newFormat;
 
         synchronized (this) {
@@ -345,7 +342,7 @@ public class AccessLogValve extends AbstractAccessLogValve {
      * @param encoding The name of the character set.
      */
     public void setEncoding(String encoding) {
-        if (encoding != null && encoding.length() > 0) {
+        if (encoding != null && !encoding.isEmpty()) {
             this.encoding = encoding;
         } else {
             this.encoding = null;
@@ -377,14 +374,14 @@ public class AccessLogValve extends AbstractAccessLogValve {
                     for (String oldAccessLog : oldAccessLogs) {
                         boolean match = false;
 
-                        if (prefix != null && prefix.length() > 0) {
+                        if (prefix != null && !prefix.isEmpty()) {
                             if (!oldAccessLog.startsWith(prefix)) {
                                 continue;
                             }
                             match = true;
                         }
 
-                        if (suffix != null && suffix.length() > 0) {
+                        if (suffix != null && !suffix.isEmpty()) {
                             if (!oldAccessLog.endsWith(suffix)) {
                                 continue;
                             }

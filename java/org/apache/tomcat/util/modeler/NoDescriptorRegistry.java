@@ -17,6 +17,7 @@
 package org.apache.tomcat.util.modeler;
 
 import java.io.ObjectInputStream;
+import java.io.Serial;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -149,7 +150,7 @@ public class NoDescriptorRegistry extends Registry {
         @Override
         public ObjectInstance createMBean(String className, ObjectName name)
                 throws ReflectionException, InstanceAlreadyExistsException,
-                MBeanRegistrationException, NotCompliantMBeanException, MBeanRegistrationException {
+                MBeanRegistrationException, NotCompliantMBeanException {
             return null;
         }
 
@@ -157,8 +158,7 @@ public class NoDescriptorRegistry extends Registry {
         @Override
         public ObjectInstance createMBean(String className, ObjectName name, ObjectName loaderName)
                 throws ReflectionException, InstanceAlreadyExistsException,
-                MBeanRegistrationException, NotCompliantMBeanException, InstanceNotFoundException,
-                MBeanRegistrationException {
+                MBeanRegistrationException, NotCompliantMBeanException, InstanceNotFoundException {
             return null;
         }
 
@@ -166,7 +166,7 @@ public class NoDescriptorRegistry extends Registry {
         @Override
         public ObjectInstance createMBean(String className, ObjectName name, Object[] params,
                 String[] signature) throws ReflectionException, InstanceAlreadyExistsException,
-                MBeanRegistrationException, NotCompliantMBeanException, MBeanRegistrationException {
+                MBeanRegistrationException, NotCompliantMBeanException {
             return null;
         }
 
@@ -175,7 +175,7 @@ public class NoDescriptorRegistry extends Registry {
         public ObjectInstance createMBean(String className, ObjectName name, ObjectName loaderName,
                 Object[] params, String[] signature) throws ReflectionException,
                 InstanceAlreadyExistsException, MBeanRegistrationException,
-                NotCompliantMBeanException, InstanceNotFoundException, MBeanRegistrationException {
+                NotCompliantMBeanException, InstanceNotFoundException {
             return null;
         }
 
@@ -402,6 +402,7 @@ public class NoDescriptorRegistry extends Registry {
 
     private static class PassthroughMBean extends ManagedBean {
 
+        @Serial
         private static final long serialVersionUID = 1L;
     }
 }
