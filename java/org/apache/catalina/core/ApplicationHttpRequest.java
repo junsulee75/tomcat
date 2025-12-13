@@ -59,9 +59,6 @@ import org.apache.tomcat.util.res.StringManager;
  * <strong>WARNING</strong>: Due to Java's lack of support for multiple inheritance, all of the logic in
  * <code>ApplicationRequest</code> is duplicated in <code>ApplicationHttpRequest</code>. Make sure that you keep these
  * two classes in synchronization when making changes!
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
  */
 class ApplicationHttpRequest extends HttpServletRequestWrapper {
 
@@ -556,7 +553,7 @@ class ApplicationHttpRequest extends HttpServletRequestWrapper {
                     if (localSession != null && !localSession.isValid()) {
                         localSession = null;
                     }
-                } catch (IOException e) {
+                } catch (IOException ignore) {
                     // Ignore
                 }
                 if (localSession == null && create) {
@@ -602,7 +599,7 @@ class ApplicationHttpRequest extends HttpServletRequestWrapper {
             Session session = null;
             try {
                 session = manager.findSession(requestedSessionId);
-            } catch (IOException e) {
+            } catch (IOException ignore) {
                 // Ignore
             }
             return (session != null) && session.isValid();

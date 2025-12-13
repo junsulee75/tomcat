@@ -77,9 +77,6 @@ import org.apache.tomcat.util.res.StringManager;
  * <li><b>debug</b> - The debugging detail level that controls the amount of information that is logged by this servlet.
  * Default is zero.
  * </ul>
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
  */
 public class HostManagerServlet extends HttpServlet implements ContainerServlet {
 
@@ -333,7 +330,7 @@ public class HostManagerServlet extends HttpServlet implements ContainerServlet 
         }
         try {
             appBaseFile = file.getCanonicalFile();
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             appBaseFile = file;
         }
         if (!appBaseFile.mkdirs() && !appBaseFile.isDirectory()) {
@@ -357,7 +354,7 @@ public class HostManagerServlet extends HttpServlet implements ContainerServlet 
                 }
                 Path dest = new File(configBaseFile, "manager.xml").toPath();
                 Files.copy(is, dest);
-            } catch (IOException e) {
+            } catch (IOException ioe) {
                 writer.println(smClient.getString("hostManagerServlet.managerXml"));
                 return;
             }

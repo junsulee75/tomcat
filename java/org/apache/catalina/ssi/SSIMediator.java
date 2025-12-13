@@ -32,13 +32,7 @@ import org.apache.tomcat.util.res.StringManager;
 import org.apache.tomcat.util.security.Escape;
 
 /**
- * Allows the different SSICommand implementations to share data/talk to each other
- *
- * @author Bip Thelin
- * @author Amy Roh
- * @author Paul Speed
- * @author Dan Sandberg
- * @author David Becker
+ * Allows the different SSICommand implementations to share data/talk to each other.
  */
 public class SSIMediator {
     private static final StringManager sm = StringManager.getManager(SSIMediator.class);

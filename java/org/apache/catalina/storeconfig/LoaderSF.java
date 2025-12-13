@@ -44,9 +44,7 @@ public class LoaderSF extends StoreFactoryBase {
             }
         } else {
             if (log.isWarnEnabled()) {
-                if (log.isWarnEnabled()) {
-                    log.warn(sm.getString("factory.storeNoDescriptor", aElement.getClass()));
-                }
+                log.warn(sm.getString("factory.storeNoDescriptor", aElement.getClass()));
             }
         }
     }
@@ -64,6 +62,6 @@ public class LoaderSF extends StoreFactoryBase {
             return false;
         }
         return (!wloader.getDelegate()) &&
-            wloader.getLoaderClass().equals("org.apache.catalina.loader.WebappClassLoader");
+                wloader.getLoaderClass().equals("org.apache.catalina.loader.WebappClassLoader");
     }
 }

@@ -62,8 +62,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Holds and manages the naming resources defined in the Jakarta EE Naming Context and their associated JNDI context.
- *
- * @author Remy Maucherat
  */
 public class NamingResourcesImpl extends LifecycleMBeanBase implements Serializable, NamingResources {
 
@@ -515,8 +513,8 @@ public class NamingResourcesImpl extends LifecycleMBeanBase implements Serializa
 
 
     /**
-     * @return the array of defined environment entries for this web application. If none have been defined, a zero-length
-     *             array is returned.
+     * @return the array of defined environment entries for this web application. If none have been defined, a
+     *             zero-length array is returned.
      */
     public ContextEnvironment[] findEnvironments() {
 
@@ -651,8 +649,8 @@ public class NamingResourcesImpl extends LifecycleMBeanBase implements Serializa
 
 
     /**
-     * @return the array of resource environment reference names for this web application. If none have been specified, a
-     *             zero-length array is returned.
+     * @return the array of resource environment reference names for this web application. If none have been specified,
+     *             a zero-length array is returned.
      */
     public ContextResourceEnvRef[] findResourceEnvRefs() {
 
@@ -979,10 +977,10 @@ public class NamingResourcesImpl extends LifecycleMBeanBase implements Serializa
         try {
             m = resource.getClass().getMethod(closeMethod, (Class<?>[]) null);
         } catch (SecurityException e) {
-            log.debug(sm.getString("namingResources.cleanupCloseSecurity", closeMethod, name, container));
+            log.debug(sm.getString("namingResources.cleanupCloseSecurity", closeMethod, name, container), e);
             return;
         } catch (NoSuchMethodException e) {
-            log.debug(sm.getString("namingResources.cleanupNoClose", name, container, closeMethod));
+            log.debug(sm.getString("namingResources.cleanupNoClose", name, container, closeMethod), e);
             return;
         }
         try {

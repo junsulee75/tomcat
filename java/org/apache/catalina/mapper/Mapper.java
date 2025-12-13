@@ -41,8 +41,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Mapper, which implements the servlet API mapping rules (which are derived from the HTTP rules).
- *
- * @author Remy Maucherat
  */
 public final class Mapper {
 
@@ -451,7 +449,7 @@ public final class Mapper {
      * @param resourceOnly true if this wrapper always expects a physical resource to be present (such as a JSP)
      */
     private void addWrapper(ContextVersion context, String path, Wrapper wrapper, boolean jspWildCard,
-                            boolean resourceOnly) {
+            boolean resourceOnly) {
 
         synchronized (context) {
             if (path.endsWith("/*")) {

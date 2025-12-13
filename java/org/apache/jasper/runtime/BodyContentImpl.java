@@ -27,11 +27,8 @@ import jakarta.servlet.jsp.tagext.BodyContent;
 import org.apache.jasper.compiler.Localizer;
 
 /**
- * Write text to a character-output stream, buffering characters to provide efficient writing of single
- * characters, arrays, and strings. Provide support for discarding the output that has been buffered.
- *
- * @author Rajiv Mordani
- * @author Jan Luehe
+ * Write text to a character-output stream, buffering characters to provide efficient writing of single characters,
+ * arrays, and strings. Provide support for discarding the output that has been buffered.
  */
 public class BodyContentImpl extends BodyContent {
 
@@ -370,7 +367,7 @@ public class BodyContentImpl extends BodyContent {
         this.writer = null;
         try {
             this.clear();
-        } catch (IOException ex) {
+        } catch (IOException ignore) {
             // ignore
         }
     }

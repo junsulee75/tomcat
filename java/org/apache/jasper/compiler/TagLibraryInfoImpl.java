@@ -55,12 +55,6 @@ import org.apache.tomcat.util.descriptor.tld.ValidatorXml;
 
 /**
  * Implementation of the TagLibraryInfo class from the JSP spec.
- *
- * @author Anil K. Vijendran
- * @author Mandar Raje
- * @author Pierre Delisle
- * @author Kin-man Chung
- * @author Jan Luehe
  */
 class TagLibraryInfoImpl extends TagLibraryInfo implements TagConstants {
 
@@ -152,7 +146,7 @@ class TagLibraryInfoImpl extends TagLibraryInfo implements TagConstants {
                             if (urlConn != null) {
                                 try {
                                     urlConn.getInputStream().close();
-                                } catch (IOException e) {
+                                } catch (IOException ignore) {
                                     // Ignore
                                 }
                             }
@@ -275,8 +269,8 @@ class TagLibraryInfoImpl extends TagLibraryInfo implements TagConstants {
             if (url.getProtocol().equals("war") && uri.endsWith(".jar")) {
                 url = UriUtil.warToJar(url);
             }
-        } catch (Exception ex) {
-            err.jspError("jsp.error.tld.unable_to_get_jar", uri, ex.toString());
+        } catch (Exception e) {
+            err.jspError("jsp.error.tld.unable_to_get_jar", uri, e.toString());
         }
         if (uri.endsWith(".jar")) {
             if (url == null) {

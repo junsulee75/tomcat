@@ -19,6 +19,7 @@ package org.apache.catalina.core;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.catalina.Lifecycle;
 import org.apache.catalina.LifecycleEvent;
@@ -99,25 +100,27 @@ public class AprLifecycleListener implements LifecycleListener {
 
     private static final int FIPS_OFF = 0;
 
-    protected static final Object lock = new Object();
-
-    // Guarded by lock
+    // Guarded APRStatus.getStatusLock()
     private static int referenceCount = 0;
     private boolean instanceInitialized = false;
 
 
     public static boolean isAprAvailable() {
         // https://bz.apache.org/bugzilla/show_bug.cgi?id=48613
-        if (AprStatus.isInstanceCreated()) {
-            synchronized (lock) {
+        if (org.apache.tomcat.jni.AprStatus.isInstanceCreated()) {
+            Lock writeLock = org.apache.tomcat.jni.AprStatus.getStatusLock().writeLock();
+            writeLock.lock();
+            try {
                 init();
+            } finally {
+                writeLock.unlock();
             }
         }
-        return AprStatus.isAprAvailable();
+        return org.apache.tomcat.jni.AprStatus.isAprAvailable();
     }
 
     public AprLifecycleListener() {
-        AprStatus.setInstanceCreated(true);
+        org.apache.tomcat.jni.AprStatus.setInstanceCreated(true);
     }
 
     // ---------------------------------------------- LifecycleListener Methods
@@ -131,7 +134,9 @@ public class AprLifecycleListener implements LifecycleListener {
     public void lifecycleEvent(LifecycleEvent event) {
 
         if (Lifecycle.BEFORE_INIT_EVENT.equals(event.getType())) {
-            synchronized (lock) {
+            Lock writeLock = org.apache.tomcat.jni.AprStatus.getStatusLock().writeLock();
+            writeLock.lock();
+            try {
                 instanceInitialized = true;
                 if (!(event.getLifecycle() instanceof Server)) {
                     log.warn(sm.getString("listener.notServer", event.getLifecycle().getClass().getSimpleName()));
@@ -145,7 +150,7 @@ public class AprLifecycleListener implements LifecycleListener {
                     log.info(msg);
                 }
                 initInfoLogMessages.clear();
-                if (AprStatus.isAprAvailable()) {
+                if (org.apache.tomcat.jni.AprStatus.isAprAvailable()) {
                     try {
                         initializeSSL();
                     } catch (Throwable t) {
@@ -156,15 +161,18 @@ public class AprLifecycleListener implements LifecycleListener {
                 }
                 // Failure to initialize FIPS mode is fatal
                 if (!(null == FIPSMode || "off".equalsIgnoreCase(FIPSMode)) && !isFIPSModeActive()) {
-                    String errorMessage = sm.getString("aprListener.initializeFIPSFailed");
-                    Error e = new Error(errorMessage);
+                    Error e = new Error(sm.getString("aprListener.initializeFIPSFailed"));
                     // Log here, because thrown error might be not logged
-                    log.fatal(errorMessage, e);
+                    log.fatal(e.getMessage(), e);
                     throw e;
                 }
+            } finally {
+                writeLock.unlock();
             }
         } else if (Lifecycle.AFTER_DESTROY_EVENT.equals(event.getType())) {
-            synchronized (lock) {
+            Lock writeLock = org.apache.tomcat.jni.AprStatus.getStatusLock().writeLock();
+            writeLock.lock();
+            try {
                 // Instance may get destroyed without ever being initialized
                 if (instanceInitialized) {
                     referenceCount--;
@@ -173,7 +181,7 @@ public class AprLifecycleListener implements LifecycleListener {
                     // Still being used
                     return;
                 }
-                if (!AprStatus.isAprAvailable()) {
+                if (!org.apache.tomcat.jni.AprStatus.isAprAvailable()) {
                     return;
                 }
                 try {
@@ -181,16 +189,18 @@ public class AprLifecycleListener implements LifecycleListener {
                 } catch (Throwable t) {
                     Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
                     ExceptionUtils.handleThrowable(throwable);
-                    log.info(sm.getString("aprListener.aprDestroy"));
+                    log.warn(sm.getString("aprListener.aprDestroy"), throwable);
                 }
+            } finally {
+                writeLock.unlock();
             }
         }
 
     }
 
     private static void terminateAPR() {
-        AprStatus.setAprInitialized(false);
-        AprStatus.setAprAvailable(false);
+        org.apache.tomcat.jni.AprStatus.setAprInitialized(false);
+        org.apache.tomcat.jni.AprStatus.setAprAvailable(false);
         fipsModeActive = false;
         sslInitialized = false; // terminate() will clean the pool
         // There could be unreferenced SSL_CTX still waiting for GC
@@ -202,10 +212,10 @@ public class AprLifecycleListener implements LifecycleListener {
         int rqver = TCN_REQUIRED_MAJOR * 1000 + TCN_REQUIRED_MINOR * 100 + TCN_REQUIRED_PATCH;
         int rcver = TCN_RECOMMENDED_MAJOR * 1000 + TCN_RECOMMENDED_MINOR * 100 + TCN_RECOMMENDED_PV;
 
-        if (AprStatus.isAprInitialized()) {
+        if (org.apache.tomcat.jni.AprStatus.isAprInitialized()) {
             return;
         }
-        AprStatus.setAprInitialized(true);
+        org.apache.tomcat.jni.AprStatus.setAprInitialized(true);
 
         try {
             Library.initialize(null);
@@ -260,7 +270,7 @@ public class AprLifecycleListener implements LifecycleListener {
         initInfoLogMessages
                 .add(sm.getString("aprListener.tcnValid", Library.versionString(), Library.aprVersionString()));
 
-        AprStatus.setAprAvailable(true);
+        org.apache.tomcat.jni.AprStatus.setAprAvailable(true);
     }
 
     private static void initializeSSL() throws Exception {
@@ -290,7 +300,7 @@ public class AprLifecycleListener implements LifecycleListener {
         method = clazz.getMethod(methodName, paramTypes);
         method.invoke(null, paramValues);
 
-        AprStatus.setOpenSSLVersion(SSL.version());
+        org.apache.tomcat.jni.AprStatus.setOpenSSLVersion(SSL.version());
         // OpenSSL 3 onwards uses providers
         boolean usingProviders = tcnMajor > 1 || (tcnVersion > 1233 && (SSL.version() & 0xF0000000L) > 0x20000000);
 
@@ -430,17 +440,17 @@ public class AprLifecycleListener implements LifecycleListener {
     }
 
     public void setUseOpenSSL(boolean useOpenSSL) {
-        if (useOpenSSL != AprStatus.getUseOpenSSL()) {
-            AprStatus.setUseOpenSSL(useOpenSSL);
+        if (useOpenSSL != org.apache.tomcat.jni.AprStatus.getUseOpenSSL()) {
+            org.apache.tomcat.jni.AprStatus.setUseOpenSSL(useOpenSSL);
         }
     }
 
     public static boolean getUseOpenSSL() {
-        return AprStatus.getUseOpenSSL();
+        return org.apache.tomcat.jni.AprStatus.getUseOpenSSL();
     }
 
     public static boolean isInstanceCreated() {
-        return AprStatus.isInstanceCreated();
+        return org.apache.tomcat.jni.AprStatus.isInstanceCreated();
     }
 
 }

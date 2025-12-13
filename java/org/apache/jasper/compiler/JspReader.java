@@ -31,18 +31,7 @@ import org.apache.tomcat.Jar;
 /**
  * JspReader is an input buffer for the JSP parser. It should allow unlimited lookahead and pushback. It also has a
  * bunch of parsing utility methods for understanding html style content.
- *
- * @author Anil K. Vijendran
- * @author Anselm Baird-Smith
- * @author Harish Prabandham
- * @author Rajiv Mordani
- * @author Mandar Raje
- * @author Danno Ferrin
- * @author Kin-man Chung
- * @author Shawn Bayern
- * @author Mark Roth
  */
-
 class JspReader {
 
     /**
@@ -116,9 +105,9 @@ class JspReader {
             if (reader != null) {
                 try {
                     reader.close();
-                } catch (Exception any) {
+                } catch (Exception e) {
                     if (log.isDebugEnabled()) {
-                        log.debug(Localizer.getMessage("jsp.error.file.close"), any);
+                        log.debug(Localizer.getMessage("jsp.error.file.close"), e);
                     }
                 }
             }
@@ -405,7 +394,8 @@ class JspReader {
         Boolean result;
         Mark restart = null;
 
-        skip: while ((result = indexOf(firstChar, ret)) != null) {
+        skip:
+        while ((result = indexOf(firstChar, ret)) != null) {
             if (result.booleanValue()) {
                 if (restart != null) {
                     restart.init(current, true);
@@ -442,7 +432,8 @@ class JspReader {
         int ch;
         int prev = 'x'; // Doesn't matter
         char firstChar = limit.charAt(0);
-        skip: for (ch = nextChar(ret); ch != -1; prev = ch, ch = nextChar(ret)) {
+        skip:
+        for (ch = nextChar(ret); ch != -1; prev = ch, ch = nextChar(ret)) {
             if (ch == '\\' && prev == '\\') {
                 ch = 0; // Double \ is not an escape char anymore
             } else if (prev == '\\') {

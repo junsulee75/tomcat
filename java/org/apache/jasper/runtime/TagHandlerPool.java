@@ -27,8 +27,6 @@ import org.apache.tomcat.InstanceManager;
 
 /**
  * Pool of tag handlers that can be reused.
- *
- * @author Jan Luehe
  */
 public class TagHandlerPool {
 
@@ -69,7 +67,7 @@ public class TagHandlerPool {
         if (maxSizeS != null) {
             try {
                 maxSize = Integer.parseInt(maxSizeS);
-            } catch (Exception ex) {
+            } catch (Exception e) {
                 // Ignore
             }
         }

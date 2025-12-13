@@ -25,9 +25,7 @@ import javax.management.ObjectName;
  * Structure holding the Request and Response objects. It also holds statistical information about request processing
  * and provide management information about the requests being processed. Each thread uses a Request/Response pair that
  * is recycled on each request. This object provides a place to collect global low-level statistics - without having to
- * deal with synchronization ( since each thread will have its own RequestProcessorMX ).
- *
- * @author Costin Manolache
+ * deal with synchronization (since each thread will have its own RequestProcessorMX).
  */
 public class RequestInfo {
     private RequestGroupInfo global = null;
@@ -65,7 +63,7 @@ public class RequestInfo {
     // This is useful for long-running requests only
 
     public String getMethod() {
-        return req.method().toString();
+        return req.getMethod();
     }
 
     public String getCurrentUri() {
@@ -260,5 +258,19 @@ public class RequestInfo {
 
     public void setLastRequestProcessingTime(long lastRequestProcessingTime) {
         this.lastRequestProcessingTime = lastRequestProcessingTime;
+    }
+
+    public void recycleStatistcs() {
+        this.bytesSent = 0;
+        this.bytesReceived = 0;
+
+        this.processingTime = 0;
+        this.maxTime = 0;
+        this.maxRequestUri = null;
+
+        this.requestCount = 0;
+        this.errorCount = 0;
+
+        this.lastRequestProcessingTime = 0;
     }
 }

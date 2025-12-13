@@ -47,6 +47,7 @@ import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.buf.MessageBytes;
+import org.apache.tomcat.util.http.Method;
 import org.apache.tomcat.util.http.MimeHeaders;
 import org.apache.tomcat.util.http.parser.Host;
 import org.apache.tomcat.util.http.parser.Priority;
@@ -161,7 +162,7 @@ class Stream extends AbstractNonZeroStream implements HeaderEmitter {
         this.coyoteResponse.setOutputBuffer(http2OutputBuffer);
         this.coyoteRequest.setResponse(coyoteResponse);
         this.coyoteRequest.protocol().setString("HTTP/2.0");
-        this.coyoteRequest.setStartTimeNanos(System.nanoTime());
+        this.coyoteRequest.markStartTime();
     }
 
 
@@ -363,9 +364,9 @@ class Stream extends AbstractNonZeroStream implements HeaderEmitter {
 
         switch (name) {
             case ":method": {
-                if (coyoteRequest.method().isNull()) {
-                    coyoteRequest.method().setString(value);
-                    if ("HEAD".equals(value)) {
+                if (coyoteRequest.getMethod() == null) {
+                    coyoteRequest.setMethod(value);
+                    if (Method.HEAD.equals(value)) {
                         configureVoidOutputFilter();
                     }
                 } else {
@@ -505,6 +506,11 @@ class Stream extends AbstractNonZeroStream implements HeaderEmitter {
         } else {
             coyoteRequest.serverName().setString(value);
         }
+        // Match host name with SNI if required
+        if (!handler.getProtocol().getHttp11Protocol().checkSni(handler.getSniHostName(), coyoteRequest.serverName().getString())) {
+            throw new HpackException(sm.getString("stream.host.sni", getConnectionId(), getIdAsString(), value,
+                    handler.getSniHostName()));
+        }
     }
 
 
@@ -547,8 +553,8 @@ class Stream extends AbstractNonZeroStream implements HeaderEmitter {
 
 
     final boolean receivedEndOfHeaders() throws ConnectionException {
-        if (coyoteRequest.method().isNull() || coyoteRequest.scheme().isNull() ||
-                !coyoteRequest.method().equals("CONNECT") && coyoteRequest.requestURI().isNull()) {
+        if (coyoteRequest.getMethod() == null || coyoteRequest.scheme().isNull() ||
+                !Method.CONNECT.equals(coyoteRequest.getMethod()) && coyoteRequest.requestURI().isNull()) {
             throw new ConnectionException(sm.getString("stream.header.required", getConnectionId(), getIdAsString()),
                     Http2Error.PROTOCOL_ERROR);
         }
@@ -670,8 +676,8 @@ class Stream extends AbstractNonZeroStream implements HeaderEmitter {
 
 
     @Override
-    final void receivedData(int payloadSize) throws Http2Exception {
-        contentLengthReceived += payloadSize;
+    final void receivedData(int dataLength) throws Http2Exception {
+        contentLengthReceived += dataLength;
         long contentLengthHeader = coyoteRequest.getContentLengthLong();
         if (contentLengthHeader > -1 && contentLengthReceived > contentLengthHeader) {
             throw new ConnectionException(
@@ -1064,7 +1070,7 @@ class Stream extends AbstractNonZeroStream implements HeaderEmitter {
                 // Only want to return false if the window size is zero AND we are
                 // already waiting for an allocation.
                 return (getWindowSize() <= 0 || !allocationManager.isWaitingForStream()) &&
-                    (handler.getWindowSize() <= 0 || !allocationManager.isWaitingForConnection()) && !dataLeft;
+                        (handler.getWindowSize() <= 0 || !allocationManager.isWaitingForConnection()) && !dataLeft;
             } finally {
                 writeLock.unlock();
             }

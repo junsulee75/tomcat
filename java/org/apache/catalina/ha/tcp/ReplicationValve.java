@@ -47,21 +47,14 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * <p>
  * Implementation of a Valve that logs interesting contents from the specified Request (before processing) and the
  * corresponding Response (after processing). It is especially useful in debugging problems related to headers and
  * cookies.
- * </p>
  * <p>
  * This Valve may be attached to any Container, depending on the granularity of the logging you wish to perform.
- * </p>
  * <p>
  * primaryIndicator=true, then the request attribute <i>org.apache.catalina.ha.tcp.isPrimarySession.</i> is set true,
  * when request processing is at sessions primary node.
- * </p>
- *
- * @author Craig R. McClanahan
- * @author Peter Rossbach
  */
 public class ReplicationValve extends ValveBase implements ClusterValve {
 
@@ -376,9 +369,9 @@ public class ReplicationValve extends ValveBase implements ClusterValve {
             if (isCrossContext) {
                 sendCrossContextSession();
             }
-        } catch (Exception x) {
+        } catch (Exception e) {
             // FIXME we have a lot of sends, but the trouble with one node stops the correct replication to other nodes!
-            log.error(sm.getString("ReplicationValve.send.failure"), x);
+            log.error(sm.getString("ReplicationValve.send.failure"), e);
         } finally {
             if (doStatistics()) {
                 updateStats(totalstart, start, isAsync);
@@ -505,8 +498,8 @@ public class ReplicationValve extends ValveBase implements ClusterValve {
         for (String invalidId : invalidIds) {
             try {
                 send(manager, invalidId);
-            } catch (Exception x) {
-                log.error(sm.getString("ReplicationValve.send.invalid.failure", invalidId), x);
+            } catch (Exception e) {
+                log.error(sm.getString("ReplicationValve.send.invalid.failure", invalidId), e);
             }
         }
     }
@@ -544,8 +537,7 @@ public class ReplicationValve extends ValveBase implements ClusterValve {
                             Long.valueOf(totalSendTime.longValue() / nrOfRequests.longValue()),
                             Long.valueOf(nrOfRequests.longValue()), Long.valueOf(nrOfSendRequests.longValue()),
                             Long.valueOf(nrOfCrossContextSendRequests.longValue()),
-                            Long.valueOf(nrOfFilterRequests.longValue()),
-                            Long.valueOf(totalRequestTime.longValue()),
+                            Long.valueOf(nrOfFilterRequests.longValue()), Long.valueOf(totalRequestTime.longValue()),
                             Long.valueOf(totalSendTime.longValue())));
                 }
             }

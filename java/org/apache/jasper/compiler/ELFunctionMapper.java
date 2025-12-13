@@ -30,8 +30,6 @@ import org.apache.jasper.JasperException;
 /**
  * This class generates functions mappers for the EL expressions in the page. Instead of a global mapper, a mapper is
  * used for each call to EL evaluator, thus avoiding the prefix overlapping and redefinition issues.
- *
- * @author Kin-man Chung
  */
 
 public class ELFunctionMapper {
@@ -187,7 +185,8 @@ public class ELFunctionMapper {
 
             // Generate declaration for the map statically
             decName = getMapName();
-            ss.append("private static org.apache.jasper.runtime.ProtectedFunctionMapper ").append(decName).append(";\n");
+            ss.append("private static org.apache.jasper.runtime.ProtectedFunctionMapper ").append(decName)
+                    .append(";\n");
 
             ds.append("  ").append(decName).append("= ");
             ds.append("org.apache.jasper.runtime.ProtectedFunctionMapper");

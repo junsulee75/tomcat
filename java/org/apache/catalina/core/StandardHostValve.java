@@ -44,9 +44,6 @@ import org.apache.tomcat.util.res.StringManager;
  * Valve that implements the default basic behavior for the <code>StandardHost</code> container implementation.
  * <p>
  * <b>USAGE CONSTRAINT</b>: This implementation is likely to be useful only when processing HTTP requests.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
  */
 final class StandardHostValve extends ValveBase {
 
@@ -212,8 +209,8 @@ final class StandardHostValve extends ValveBase {
                     response.finishResponse();
                 } catch (ClientAbortException e) {
                     // Ignore
-                } catch (IOException e) {
-                    container.getLogger().warn(sm.getString("standardHostValve.exception", errorPage), e);
+                } catch (IOException ioe) {
+                    container.getLogger().warn(sm.getString("standardHostValve.exception", errorPage), ioe);
                 }
             }
         }
@@ -265,8 +262,8 @@ final class StandardHostValve extends ValveBase {
                 if (custom(request, response, errorPage)) {
                     try {
                         response.finishResponse();
-                    } catch (IOException e) {
-                        container.getLogger().warn(sm.getString("standardHostValve.exception", errorPage), e);
+                    } catch (IOException ioe) {
+                        container.getLogger().warn(sm.getString("standardHostValve.exception", errorPage), ioe);
                     }
                 }
             }

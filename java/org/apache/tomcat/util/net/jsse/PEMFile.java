@@ -107,10 +107,9 @@ public class PEMFile {
     }
 
     public static String toPEM(X509Certificate certificate) throws CertificateEncodingException {
-        return Part.BEGIN_BOUNDARY + Part.CERTIFICATE + Part.FINISH_BOUNDARY +
-                System.lineSeparator() +
-                Base64.getMimeEncoder().encodeToString(certificate.getEncoded()) +
-                Part.END_BOUNDARY + Part.CERTIFICATE + Part.FINISH_BOUNDARY;
+        return Part.BEGIN_BOUNDARY + Part.CERTIFICATE + Part.FINISH_BOUNDARY + System.lineSeparator() +
+                Base64.getMimeEncoder().encodeToString(certificate.getEncoded()) + Part.END_BOUNDARY +
+                Part.CERTIFICATE + Part.FINISH_BOUNDARY;
     }
 
     private final List<X509Certificate> certificates = new ArrayList<>();
@@ -412,7 +411,8 @@ public class PEMFile {
                         byte[] oidPRF = p.parseOIDAsBytes();
                         prf = OID_TO_PRF.get(HexUtils.toHexString(oidPRF));
                         if (prf == null) {
-                            throw new NoSuchAlgorithmException(sm.getString("pemFile.unknownPrfAlgorithm", toDottedOidString(oidPRF)));
+                            throw new NoSuchAlgorithmException(
+                                    sm.getString("pemFile.unknownPrfAlgorithm", toDottedOidString(oidPRF)));
                         }
                         p.parseNull();
 
@@ -482,11 +482,12 @@ public class PEMFile {
 
             InvalidKeyException exception = new InvalidKeyException(sm.getString("pemFile.parseError", filename));
             if (keyAlgorithm == null) {
-                for (String algorithm : new String[] { "RSA", "DSA", "EC" }) {
+                for (String algorithm : new String[] { "RSA", "DSA", "EC", "ML-DSA" }) {
                     try {
                         return KeyFactory.getInstance(algorithm).generatePrivate(keySpec);
                     } catch (InvalidKeySpecException e) {
-                        exception.addSuppressed(e);
+                        exception.addSuppressed(new InvalidKeySpecException(
+                                sm.getString("pemFile.parseError.algorithm", algorithm), e));
                     }
                 }
             } else {

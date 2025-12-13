@@ -47,8 +47,6 @@ import org.apache.tomcat.util.ExceptionUtils;
  * <p>
  * <b>IMPLEMENTATION NOTE</b>: Correct behavior of session storing and reloading depends upon external calls to the
  * <code>start()</code> and <code>stop()</code> methods of this class at the correct times.
- *
- * @author Craig R. McClanahan
  */
 public class StandardManager extends ManagerBase {
 
@@ -167,7 +165,7 @@ public class StandardManager extends ManagerBase {
             }
         } catch (FileNotFoundException e) {
             if (log.isDebugEnabled()) {
-                log.debug(sm.getString("standardManager.noFile", file.getAbsolutePath()));
+                log.debug(sm.getString("standardManager.noFile", file.getAbsolutePath()), e);
             }
             return;
         }

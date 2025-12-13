@@ -34,7 +34,7 @@ public class WsFrameClient extends WsFrameBase {
     private static final StringManager sm = StringManager.getManager(WsFrameClient.class);
 
     private final AsyncChannelWrapper channel;
-    private final CompletionHandler<Integer, Void> handler;
+    private final CompletionHandler<Integer,Void> handler;
     // Not final as it may need to be re-sized
     private volatile ByteBuffer response;
 
@@ -50,8 +50,8 @@ public class WsFrameClient extends WsFrameBase {
     void startInputProcessing() {
         try {
             processSocketRead();
-        } catch (IOException e) {
-            close(e);
+        } catch (IOException ioe) {
+            close(ioe);
         }
     }
 
@@ -143,7 +143,7 @@ public class WsFrameClient extends WsFrameBase {
         return log;
     }
 
-    private class WsFrameClientCompletionHandler implements CompletionHandler<Integer, Void> {
+    private class WsFrameClientCompletionHandler implements CompletionHandler<Integer,Void> {
 
         @Override
         public void completed(Integer result, Void attachment) {
@@ -206,7 +206,7 @@ public class WsFrameClient extends WsFrameBase {
     private void resumeProcessing(boolean checkOpenOnError) {
         try {
             processSocketRead();
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             if (checkOpenOnError) {
                 // Only send a close message on an IOException if the client
                 // has not yet received a close control message from the server
@@ -215,12 +215,12 @@ public class WsFrameClient extends WsFrameBase {
                 // control message.
                 if (isOpen()) {
                     if (log.isDebugEnabled()) {
-                        log.debug(sm.getString("wsFrameClient.ioe"), e);
+                        log.debug(sm.getString("wsFrameClient.ioe"), ioe);
                     }
-                    close(e);
+                    close(ioe);
                 }
             } else {
-                close(e);
+                close(ioe);
             }
         }
     }

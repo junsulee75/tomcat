@@ -100,7 +100,11 @@ public class RpcChannel implements ChannelListener {
                 RpcMessage rmsg = new RpcMessage(rpcId, key.id, message);
                 channel.send(destination, rmsg, sendOptions);
                 if (rpcOptions != NO_REPLY) {
-                    collector.wait(timeout);
+                    long timeoutExpiry = System.nanoTime() + timeout * 1_000_000;
+                    while (!collector.isComplete() && timeout > 0) {
+                        collector.wait(timeout);
+                        timeout = (timeoutExpiry - System.nanoTime()) / 1_000_000;
+                    }
                 }
             }
         } catch (InterruptedException ix) {
@@ -175,11 +179,11 @@ public class RpcChannel implements ChannelListener {
                             replyMessageOptions & ~Channel.SEND_OPTIONS_SYNCHRONIZED_ACK);
                 }
                 finished = true;
-            } catch (Exception x) {
+            } catch (Exception e) {
                 if (excallback != null && !asyncReply) {
-                    excallback.replyFailed(rmsg.message, reply, sender, x);
+                    excallback.replyFailed(rmsg.message, reply, sender, e);
                 } else {
-                    log.error(sm.getString("rpcChannel.replyFailed"), x);
+                    log.error(sm.getString("rpcChannel.replyFailed"), e);
                 }
             }
             if (finished && excallback != null && !asyncReply) {

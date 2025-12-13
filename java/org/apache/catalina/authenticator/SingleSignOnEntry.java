@@ -35,8 +35,6 @@ import org.apache.catalina.Session;
  * <code>AuthenticatorBase</code> subclasses that need it in order to perform reauthentications when SingleSignOn is in
  * use.
  *
- * @author B Stansberry, based on work by Craig R. McClanahan
- *
  * @see SingleSignOn
  * @see AuthenticatorBase#reauthenticateFromSSO
  */
@@ -100,6 +98,18 @@ public class SingleSignOnEntry implements Serializable {
      */
     public void removeSession(Session session) {
         SingleSignOnSessionKey key = new SingleSignOnSessionKey(session);
+        sessionKeys.remove(key);
+    }
+
+    /**
+     * Removes the given <code>Session</code> from the list of those associated with this SSO, using the previous
+     * sessionId
+     *
+     * @param session      the <code>Session</code> to remove.
+     * @param oldSessionId the previous sessionId of the <code>Session</code> to remove.
+     */
+    public void removeSession(Session session, String oldSessionId) {
+        SingleSignOnSessionKey key = new SingleSignOnSessionKey(session, oldSessionId);
         sessionKeys.remove(key);
     }
 

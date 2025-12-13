@@ -135,9 +135,6 @@ import org.ietf.jgss.GSSName;
  * descriptor allows applications to refer to roles programmatically by names other than those used in the directory
  * server itself.</li>
  * </ul>
- *
- * @author John Holman
- * @author Craig R. McClanahan
  */
 public class JNDIRealm extends RealmBase {
 
@@ -1158,9 +1155,9 @@ public class JNDIRealm extends RealmBase {
             } catch (NullPointerException | NamingException e) {
                 /*
                  * BZ 61313 NamingException may or may not indicate an error that is recoverable via fail over.
-                 * Therefore, a decision needs to be made whether to fail over or not. Generally, attempting to fail over
-                 * when it is not appropriate is better than not failing over when it is appropriate so the code always
-                 * attempts to fail over for NamingExceptions.
+                 * Therefore, a decision needs to be made whether to fail over or not. Generally, attempting to fail
+                 * over when it is not appropriate is better than not failing over when it is appropriate so the code
+                 * always attempts to fail over for NamingExceptions.
                  */
 
                 /*
@@ -1834,7 +1831,7 @@ public class JNDIRealm extends RealmBase {
         }
 
         boolean validated = false;
-        Hashtable<?, ?> preservedEnvironment = context.getEnvironment();
+        Hashtable<?,?> preservedEnvironment = context.getEnvironment();
 
         // Elicit an LDAP bind operation using the provided user credentials
         try {
@@ -1850,7 +1847,7 @@ public class JNDIRealm extends RealmBase {
             validated = true;
         } catch (AuthenticationException e) {
             if (containerLog.isTraceEnabled()) {
-                containerLog.trace("  bind attempt failed");
+                containerLog.trace("  bind attempt failed", e);
             }
         } finally {
             // Restore GSSAPI SASL if previously configured
@@ -2219,8 +2216,8 @@ public class JNDIRealm extends RealmBase {
         if (tls != null) {
             try {
                 tls.close();
-            } catch (IOException e) {
-                containerLog.error(sm.getString("jndiRealm.tlsClose"), e);
+            } catch (IOException ioe) {
+                containerLog.error(sm.getString("jndiRealm.tlsClose"), ioe);
             }
         }
         // Close our opened connection
@@ -2566,8 +2563,8 @@ public class JNDIRealm extends RealmBase {
     private SSLSocketFactory createSSLSocketFactoryFromClassName(String className) {
         try {
             Object o = constructInstance(className);
-            if (o instanceof SSLSocketFactory) {
-                return sslSocketFactory;
+            if (o instanceof SSLSocketFactory socketFactory) {
+                return socketFactory;
             } else {
                 throw new IllegalArgumentException(sm.getString("jndiRealm.invalidSslSocketFactory", className));
             }
@@ -2626,8 +2623,10 @@ public class JNDIRealm extends RealmBase {
             try {
                 SSLSession negotiate = tls.negotiate(getSSLSocketFactory());
                 containerLog.debug(sm.getString("jndiRealm.negotiatedTls", negotiate.getProtocol()));
-            } catch (IOException e) {
-                throw new NamingException(e.getMessage());
+            } catch (IOException ioe) {
+                NamingException ne = new NamingException(ioe.getMessage());
+                ne.initCause(ioe);
+                throw ne;
             }
         } finally {
             if (result != null) {
@@ -2760,8 +2759,8 @@ public class JNDIRealm extends RealmBase {
 
     /**
      * Given a string containing LDAP patterns for user locations (separated by parentheses in a pseudo-LDAP search
-     * string format - "(location1)(location2)"), returns an array of those paths. Real LDAP search strings are supported
-     * as well (though only the "|" "OR" type).
+     * string format - "(location1)(location2)"), returns an array of those paths. Real LDAP search strings are
+     * supported as well (though only the "|" "OR" type).
      *
      * @param userPatternString - a string LDAP search paths surrounded by parentheses
      *

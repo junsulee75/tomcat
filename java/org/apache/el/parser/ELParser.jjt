@@ -15,11 +15,6 @@
  * limitations under the License.
  */
 
-/*
-    Author:    Jacob Hookom
-    Email:    jacob at hookom.net
-*/
-
 /* == Option Declaration == */
 options
 {
@@ -148,7 +143,7 @@ void LambdaExpressionOrInvocation() #LambdaExpression : {}
 
 /*
  * Ternary
- * For '?:' '? :', then Or
+ * For '??' '?:' '? :', then Or
  */
 void Ternary() : {}
 {
@@ -542,7 +537,6 @@ java.util.Deque<Integer> deque = new java.util.ArrayDeque<Integer>();
 |    < OR0 : "||" >
 |    < OR1 : "or" >
 |    < EMPTY : "empty" >
-|    < INSTANCEOF : "instanceof" >
 |    < MULT : "*" >
 |    < PLUS : "+" >
 |    < MINUS : "-" >
@@ -554,9 +548,7 @@ java.util.Deque<Integer> deque = new java.util.ArrayDeque<Integer>();
 |    < CONCAT : "+=" >
 |    < ASSIGN : "=" >
 |    < ARROW : "->" >
-|    < IDENTIFIER : (<JAVALETTER>|<IMPL_OBJ_START>) (<JAVALETTER>|<JAVADIGIT>)* >
-|    < FUNCTIONSUFFIX : (<IDENTIFIER>) >
-|    < #IMPL_OBJ_START: "#" >
+|    < IDENTIFIER : <JAVALETTER> (<JAVALETTER>|<JAVADIGIT>)* >
 |    < #JAVALETTER:
         [
         "\u0024",

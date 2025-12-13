@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
@@ -137,9 +138,6 @@ import org.apache.tomcat.util.threads.ScheduledThreadPoolExecutor;
 /**
  * Standard implementation of the <b>Context</b> interface. Each child container must be a Wrapper implementation to
  * process the requests directed to a particular servlet.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
  */
 public class StandardContext extends ContainerBase implements Context, NotificationEmitter {
 
@@ -425,7 +423,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
     /**
      * The MIME mappings for this web application, keyed by extension.
      */
-    private final Map<String,String> mimeMappings = new HashMap<>();
+    private final ConcurrentMap<String,String> mimeMappings = new ConcurrentHashMap<>();
 
 
     /**
@@ -2445,8 +2443,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         if (!workDir.isAbsolute()) {
             try {
                 workDir = new File(getCatalinaBase().getCanonicalFile(), getWorkDir());
-            } catch (IOException e) {
-                log.warn(sm.getString("standardContext.workPath", getName()), e);
+            } catch (IOException ioe) {
+                log.warn(sm.getString("standardContext.workPath", getName()), ioe);
             }
         }
         return workDir.getAbsolutePath();
@@ -2805,12 +2803,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
     @Override
     public void addMimeMapping(String extension, String mimeType) {
-
-        synchronized (mimeMappings) {
-            mimeMappings.put(extension.toLowerCase(Locale.ENGLISH), mimeType);
-        }
+        mimeMappings.put(extension.toLowerCase(Locale.ENGLISH), mimeType);
         fireContainerEvent("addMimeMapping", extension);
-
     }
 
 
@@ -3084,9 +3078,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
     @Override
     public String[] findMimeMappings() {
-        synchronized (mimeMappings) {
-            return mimeMappings.keySet().toArray(new String[0]);
-        }
+        return mimeMappings.keySet().toArray(new String[0]);
     }
 
 
@@ -3381,12 +3373,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
     @Override
     public void removeMimeMapping(String extension) {
-
-        synchronized (mimeMappings) {
-            mimeMappings.remove(extension);
-        }
+        mimeMappings.remove(extension);
         fireContainerEvent("removeMimeMapping", extension);
-
     }
 
 
@@ -4076,7 +4064,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
                     Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
                     ExceptionUtils.handleThrowable(throwable);
                     getLogger().error(sm.getString("standardContext.listenerStop", listeners[j].getClass().getName()),
-                        throwable);
+                            throwable);
                     ok = false;
                 }
             }
@@ -4098,7 +4086,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
                     Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
                     ExceptionUtils.handleThrowable(throwable);
                     getLogger().error(sm.getString("standardContext.listenerStop", listeners[j].getClass().getName()),
-                        throwable);
+                            throwable);
                     ok = false;
                 }
             }
@@ -4369,8 +4357,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
                     if ((getCluster() != null) && distributable) {
                         try {
                             contextManager = getCluster().createManager(getName());
-                        } catch (Exception ex) {
-                            log.error(sm.getString("standardContext.cluster.managerError"), ex);
+                        } catch (Exception e) {
+                            log.error(sm.getString("standardContext.cluster.managerError"), e);
                             ok = false;
                         }
                     } else {
@@ -4727,8 +4715,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         // This object will no longer be visible or used.
         try {
             resetContext();
-        } catch (Exception ex) {
-            log.error(sm.getString("standardContext.resetContextFail", getName()), ex);
+        } catch (Exception e) {
+            log.error(sm.getString("standardContext.resetContextFail", getName()), e);
         }
 
         // reset the instance manager
@@ -4741,6 +4729,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
     }
 
     /**
+     * {@inheritDoc}
+     * <p>
      * Destroy needs to clean up the context completely. The problem is that undoing all the config in start() and
      * restoring a 'fresh' state is impossible. After stop()/destroy()/init()/start() we should have the same state as
      * if a fresh start was done - i.e. read modified web.xml, etc. This can only be done by completely removing the
@@ -4976,9 +4966,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         if (isUseNaming()) {
             try {
                 ContextBindings.bindThread(this, getNamingToken());
-            } catch (NamingException e) {
-                // Silent catch, as this is a normal case during the early
-                // startup stages
+            } catch (NamingException ignore) {
+                // Silent catch, as this is a normal case during the early startup stages
             }
         }
 
@@ -5295,8 +5284,9 @@ public class StandardContext extends ContainerBase implements Context, Notificat
             try {
                 catalinaHomePath = getCatalinaBase().getCanonicalPath();
                 dir = new File(catalinaHomePath, workDir);
-            } catch (IOException e) {
-                log.warn(sm.getString("standardContext.workCreateException", workDir, getCatalinaBase(), getName()), e);
+            } catch (IOException ioe) {
+                log.warn(sm.getString("standardContext.workCreateException", workDir, getCatalinaBase(), getName()),
+                        ioe);
             }
         }
         if (!dir.mkdirs() && !dir.isDirectory()) {
@@ -5381,11 +5371,8 @@ public class StandardContext extends ContainerBase implements Context, Notificat
 
     @Override
     protected String getObjectNameKeyProperties() {
-        return "j2eeType=WebModule," + getObjectKeyPropertiesNameOnly() +
-            ",J2EEApplication=" +
-            getJ2EEApplication() +
-            ",J2EEServer=" +
-            getJ2EEServer();
+        return "j2eeType=WebModule," + getObjectKeyPropertiesNameOnly() + ",J2EEApplication=" + getJ2EEApplication() +
+                ",J2EEServer=" + getJ2EEServer();
     }
 
     private String getObjectKeyPropertiesNameOnly() {
@@ -5701,7 +5688,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         }
 
         @Override
-        public Map<String, ? extends ServletRegistration> getServletRegistrations() {
+        public Map<String,? extends ServletRegistration> getServletRegistrations() {
             throw new UnsupportedOperationException(sm.getString("noPluggabilityServletContext.notAllowed"));
         }
 
@@ -5731,7 +5718,7 @@ public class StandardContext extends ContainerBase implements Context, Notificat
         }
 
         @Override
-        public Map<String, ? extends FilterRegistration> getFilterRegistrations() {
+        public Map<String,? extends FilterRegistration> getFilterRegistrations() {
             throw new UnsupportedOperationException(sm.getString("noPluggabilityServletContext.notAllowed"));
         }
 

@@ -20,12 +20,8 @@ package org.apache.tomcat.util.descriptor.web;
 import java.io.Serial;
 
 /**
- * Representation of a resource link for a web application, as
- * represented in a <code>&lt;ResourceLink&gt;</code> element in the
- * server configuration file.
- *
- * @author Remy Maucherat
- * @author Peter Rossbach (Peter Rossbach (pero@apache.org))
+ * Representation of a resource link for a web application, as represented in a <code>&lt;ResourceLink&gt;</code>
+ * element in the server configuration file.
  */
 public class ContextResourceLink extends ResourceBase {
 
@@ -34,7 +30,7 @@ public class ContextResourceLink extends ResourceBase {
 
     // ------------------------------------------------------------- Properties
 
-   /**
+    /**
      * The global name of this resource.
      */
     private String global = null;

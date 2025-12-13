@@ -25,8 +25,6 @@
 
   <properties>
     <title>Logging in Tomcat</title>
-    <author>Allistair Crossley</author>
-    <author email="yoavs@apache.org">Yoav Shapira</author>
   </properties>
 
 <body>
@@ -354,7 +352,7 @@ java.util.logging.ConsoleHandler.level=ALL</source>
 3manager.org.apache.juli.AsyncFileHandler.encoding = UTF-8
 
 java.util.logging.ConsoleHandler.level = ALL
-java.util.logging.ConsoleHandler.formatter = java.util.logging.OneLineFormatter
+java.util.logging.ConsoleHandler.formatter = org.apache.juli.OneLineFormatter
 java.util.logging.ConsoleHandler.encoding = UTF-8
 
 ############################################################
@@ -391,7 +389,7 @@ org.apache.juli.AsyncFileHandler.prefix = ${classloader.webappName}.
 org.apache.juli.AsyncFileHandler.encoding = UTF-8
 
 java.util.logging.ConsoleHandler.level = ALL
-java.util.logging.ConsoleHandler.formatter = java.util.logging.OneLineFormatter
+java.util.logging.ConsoleHandler.formatter = org.apache.juli.OneLineFormatter
 java.util.logging.ConsoleHandler.encoding = UTF-8]]></source>
 
 
@@ -402,7 +400,7 @@ java.util.logging.ConsoleHandler.encoding = UTF-8]]></source>
           <a href="api/org/apache/juli/package-summary.html"><code>org.apache.juli</code></a>
           package.
         </li>
-        <li>Oracle Java 11 Javadoc for the
+        <li>Oracle Java 21 Javadoc for the
           <a href="https://docs.oracle.com/en/java/javase/21/docs/api/java.logging/java/util/logging/package-summary.html"><code>java.util.logging</code></a>
           package.
         </li>

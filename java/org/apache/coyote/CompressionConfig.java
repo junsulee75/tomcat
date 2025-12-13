@@ -201,18 +201,18 @@ public class CompressionConfig {
             Set<String> tokens = new HashSet<>();
             try {
                 TokenList.parseTokenList(responseHeaders.values("Content-Encoding"), tokens);
-            } catch (IOException e) {
+            } catch (IOException ioe) {
                 // Because we are using StringReader, any exception here is a
                 // Tomcat bug.
-                log.warn(sm.getString("compressionConfig.ContentEncodingParseFail"), e);
+                log.warn(sm.getString("compressionConfig.ContentEncodingParseFail"), ioe);
                 return false;
             }
             if (tokens.contains("identity")) {
                 // If identity, do not do content modifications
                 useContentEncoding = false;
-            } else if (tokens.contains("br") || tokens.contains("compress") || tokens.contains("dcb")
-                    || tokens.contains("dcz") || tokens.contains("deflate") || tokens.contains("gzip")
-                    || tokens.contains("pack200-gzip") || tokens.contains("zstd")) {
+            } else if (tokens.contains("br") || tokens.contains("compress") || tokens.contains("dcb") ||
+                    tokens.contains("dcz") || tokens.contains("deflate") || tokens.contains("gzip") ||
+                    tokens.contains("pack200-gzip") || tokens.contains("zstd")) {
                 // Content should not be compressed twice
                 return false;
             }

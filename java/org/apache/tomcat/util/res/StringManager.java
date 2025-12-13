@@ -39,10 +39,6 @@ import java.util.ResourceBundle;
  * <p>
  * Please see the documentation for java.util.ResourceBundle for more information.
  *
- * @author James Duncan Davidson [duncan@eng.sun.com]
- * @author James Todd [gonzo@eng.sun.com]
- * @author Mel Martinez [mmartinez@g1440.com]
- *
  * @see java.util.ResourceBundle
  */
 public class StringManager {
@@ -82,7 +78,7 @@ public class StringManager {
             if (cl != null) {
                 try {
                     bnd = ResourceBundle.getBundle(bundleName, locale, cl);
-                } catch (MissingResourceException ex2) {
+                } catch (MissingResourceException ignore) {
                     // Ignore
                 }
             }
@@ -113,8 +109,7 @@ public class StringManager {
      */
     public String getString(String key) {
         if (key == null) {
-            String msg = "key may not have a null value";
-            throw new IllegalArgumentException(msg);
+            throw new IllegalArgumentException("key may not have a null value");
         }
 
         String str = null;
@@ -124,7 +119,7 @@ public class StringManager {
             if (bundle != null) {
                 str = bundle.getString(key);
             }
-        } catch (MissingResourceException mre) {
+        } catch (MissingResourceException ignore) {
             // bad: shouldn't mask an exception the following way:
             // str = "[cannot find message associated with key '" + key +
             // "' due to " + mre + "]";
@@ -176,7 +171,7 @@ public class StringManager {
     // STATIC SUPPORT METHODS
     // --------------------------------------------------------------
 
-    private static final Map<String, Map<Locale, StringManager>> managers = new HashMap<>();
+    private static final Map<String,Map<Locale,StringManager>> managers = new HashMap<>();
 
 
     /**
@@ -217,19 +212,19 @@ public class StringManager {
      */
     public static synchronized StringManager getManager(String packageName, Locale locale) {
 
-        Map<Locale, StringManager> map = managers.get(packageName);
+        Map<Locale,StringManager> map = managers.get(packageName);
         if (map == null) {
             /*
              * Don't want the HashMap size to exceed LOCALE_CACHE_SIZE. Expansion occurs when size() exceeds capacity.
-             * Therefore, keep size at or below capacity. removeEldestEntry() executes after insertion therefore the test
-             * for removal needs to use one less than the maximum desired size. Note this is an LRU cache.
+             * Therefore, keep size at or below capacity. removeEldestEntry() executes after insertion therefore the
+             * test for removal needs to use one less than the maximum desired size. Note this is an LRU cache.
              */
             map = new LinkedHashMap<>(LOCALE_CACHE_SIZE, 0.75f, true) {
                 @Serial
                 private static final long serialVersionUID = 1L;
 
                 @Override
-                protected boolean removeEldestEntry(Map.Entry<Locale, StringManager> eldest) {
+                protected boolean removeEldestEntry(Map.Entry<Locale,StringManager> eldest) {
                     return size() > (LOCALE_CACHE_SIZE - 1);
                 }
             };

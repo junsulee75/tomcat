@@ -41,13 +41,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Response object.
- *
- * @author James Duncan Davidson [duncan@eng.sun.com]
- * @author Jason Hunter [jch@eng.sun.com]
- * @author James Todd [gonzo@eng.sun.com]
- * @author Harish Prabandham
- * @author Hans Bergsten [hans@gefionsoftware.com]
- * @author Remy Maucherat
  */
 public final class Response {
 
@@ -514,7 +507,7 @@ public final class Response {
         MediaType m = null;
         try {
             m = MediaType.parseMediaType(new StringReader(type));
-        } catch (IOException e) {
+        } catch (IOException ignore) {
             // Ignore - null test below handles this
         }
         if (m == null) {

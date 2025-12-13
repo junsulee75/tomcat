@@ -45,6 +45,7 @@ import org.apache.catalina.connector.ResponseFacade;
 import org.apache.coyote.BadRequestException;
 import org.apache.coyote.CloseNowException;
 import org.apache.tomcat.util.ExceptionUtils;
+import org.apache.tomcat.util.http.Method;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
@@ -53,8 +54,6 @@ import org.apache.tomcat.util.res.StringManager;
  * resource. This implementation allows application level servlets to wrap the request and/or response objects that are
  * passed on to the called resource, as long as the wrapping classes extend
  * <code>jakarta.servlet.ServletRequestWrapper</code> and <code>jakarta.servlet.ServletResponseWrapper</code>.
- *
- * @author Craig R. McClanahan
  */
 final class ApplicationDispatcher implements AsyncDispatcher, RequestDispatcher {
 
@@ -224,7 +223,7 @@ final class ApplicationDispatcher implements AsyncDispatcher, RequestDispatcher 
             // All ERROR dispatches must be GET requests. Use the presence of ERROR_METHOD to determine if this is an
             // error dispatch as not all components (JSP) set the dispatcher type.
             if (request.getAttribute(ERROR_METHOD) != null) {
-                wrequest.setMethod("GET");
+                wrequest.setMethod(Method.GET);
             }
             wrequest.setRequestURI(hrequest.getRequestURI());
             wrequest.setContextPath(hrequest.getContextPath());
@@ -247,7 +246,7 @@ final class ApplicationDispatcher implements AsyncDispatcher, RequestDispatcher 
             // All ERROR dispatches must be GET requests. Use the presence of ERROR_METHOD to determine if this is an
             // error dispatch as not all components (JSP) set the dispatcher type.
             if (request.getAttribute(ERROR_METHOD) != null) {
-                wrequest.setMethod("GET");
+                wrequest.setMethod(Method.GET);
             }
             wrequest.setContextPath(context.getEncodedPath());
             wrequest.setRequestURI(requestURI);
@@ -304,7 +303,7 @@ final class ApplicationDispatcher implements AsyncDispatcher, RequestDispatcher 
                 } catch (IllegalStateException | IOException f) {
                     // Ignore
                 }
-            } catch (IOException e) {
+            } catch (IOException ignore) {
                 // Ignore
             }
         }
@@ -496,11 +495,11 @@ final class ApplicationDispatcher implements AsyncDispatcher, RequestDispatcher 
             wrapper.getLogger().error(sm.getString("applicationDispatcher.allocateException", wrapper.getName()),
                     StandardWrapper.getRootCause(e));
             servletException = e;
-        } catch (Throwable e) {
-            ExceptionUtils.handleThrowable(e);
-            wrapper.getLogger().error(sm.getString("applicationDispatcher.allocateException", wrapper.getName()), e);
+        } catch (Throwable t) {
+            ExceptionUtils.handleThrowable(t);
+            wrapper.getLogger().error(sm.getString("applicationDispatcher.allocateException", wrapper.getName()), t);
             servletException =
-                    new ServletException(sm.getString("applicationDispatcher.allocateException", wrapper.getName()), e);
+                    new ServletException(sm.getString("applicationDispatcher.allocateException", wrapper.getName()), t);
             // servlet = null; is already done so no need to do it explicitly
         }
 
@@ -516,9 +515,9 @@ final class ApplicationDispatcher implements AsyncDispatcher, RequestDispatcher 
             // Servlet Service Method is called by the FilterChain
         } catch (BadRequestException | CloseNowException e) {
             ioException = e;
-        } catch (IOException e) {
-            wrapper.getLogger().error(sm.getString("applicationDispatcher.serviceException", wrapper.getName()), e);
-            ioException = e;
+        } catch (IOException ioe) {
+            wrapper.getLogger().error(sm.getString("applicationDispatcher.serviceException", wrapper.getName()), ioe);
+            ioException = ioe;
         } catch (UnavailableException e) {
             wrapper.getLogger().error(sm.getString("applicationDispatcher.serviceException", wrapper.getName()), e);
             servletException = e;
@@ -548,11 +547,11 @@ final class ApplicationDispatcher implements AsyncDispatcher, RequestDispatcher 
         } catch (ServletException e) {
             wrapper.getLogger().error(sm.getString("applicationDispatcher.deallocateException", wrapper.getName()), e);
             servletException = e;
-        } catch (Throwable e) {
-            ExceptionUtils.handleThrowable(e);
-            wrapper.getLogger().error(sm.getString("applicationDispatcher.deallocateException", wrapper.getName()), e);
+        } catch (Throwable t) {
+            ExceptionUtils.handleThrowable(t);
+            wrapper.getLogger().error(sm.getString("applicationDispatcher.deallocateException", wrapper.getName()), t);
             servletException = new ServletException(
-                    sm.getString("applicationDispatcher.deallocateException", wrapper.getName()), e);
+                    sm.getString("applicationDispatcher.deallocateException", wrapper.getName()), t);
         }
 
         // Reset the old context class loader

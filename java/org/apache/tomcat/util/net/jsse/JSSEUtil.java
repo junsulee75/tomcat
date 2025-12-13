@@ -34,12 +34,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * SSLUtil implementation for JSSE.
- *
- * @author Harish Prabandham
- * @author Costin Manolache
- * @author Stefan Freyr Stefansson
- * @author EKR
- * @author Jan Luehe
  */
 public class JSSEUtil extends SSLUtilBase {
 
@@ -52,12 +46,12 @@ public class JSSEUtil extends SSLUtilBase {
     private volatile Set<String> implementedCiphers;
 
 
-    public JSSEUtil (SSLHostConfigCertificate certificate) {
+    public JSSEUtil(SSLHostConfigCertificate certificate) {
         this(certificate, true);
     }
 
 
-    public JSSEUtil (SSLHostConfigCertificate certificate, boolean warnOnSkip) {
+    public JSSEUtil(SSLHostConfigCertificate certificate, boolean warnOnSkip) {
         super(certificate, warnOnSkip);
     }
 
@@ -90,8 +84,7 @@ public class JSSEUtil extends SSLUtilBase {
 
 
     @Override
-    public SSLContext createSSLContextInternal(List<String> negotiableProtocols)
-            throws NoSuchAlgorithmException {
+    public SSLContext createSSLContextInternal(List<String> negotiableProtocols) throws NoSuchAlgorithmException {
         return new JSSESSLContext(sslHostConfig.getSslProtocol());
     }
 
@@ -103,7 +96,7 @@ public class JSSEUtil extends SSLUtilBase {
                     SSLContext context;
                     try {
                         context = new JSSESSLContext(sslHostConfig.getSslProtocol());
-                        context.init(null,  null,  null);
+                        context.init(null, null, null);
                     } catch (NoSuchAlgorithmException | KeyManagementException e) {
                         // This is fatal for the connector so throw an exception to prevent
                         // it from starting

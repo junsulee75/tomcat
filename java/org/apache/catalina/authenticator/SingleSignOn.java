@@ -28,6 +28,7 @@ import jakarta.servlet.http.Cookie;
 import org.apache.catalina.Container;
 import org.apache.catalina.Context;
 import org.apache.catalina.Engine;
+import org.apache.catalina.Host;
 import org.apache.catalina.LifecycleException;
 import org.apache.catalina.Manager;
 import org.apache.catalina.Realm;
@@ -50,8 +51,33 @@ import org.apache.tomcat.util.res.StringManager;
  * <li>The web applications themselves must use one of the standard Authenticators found in the
  * <code>org.apache.catalina.authenticator</code> package.</li>
  * </ul>
- *
- * @author Craig R. McClanahan
+ * <p>
+ * On first authentication to any web application, an SSO session is created and the authenticated Principal, the
+ * authentication type and the plain text user name and password used to authenticate (if available) are cached using a
+ * key based on the SSO session. On subsequent requests to a web application on the Host where this Valve is configured,
+ * the cached authenticated Principal and the authentication type are added to the request by the SSO Valve and no
+ * further authentication takes place.
+ * <p>
+ * In some scenarios, adding the authenticated Principal and the authentication type is insufficient. This usually
+ * occurs when the web application depends on additional actions the Realm takes on authentication which are bypassed by
+ * the SSO Valve. Examples of this include the Realm setting security credentials on the request thread to support EJB
+ * access or the CLIENT-CERT authenticator providing the client certificate and other TLS attributes. To address this,
+ * the {@code requireReauthentication} flag can be set to {@code true} which will cause the SSO Valve not to set the
+ * cached Principal and authentication type on the request and the web application authenticator will authenticate the
+ * request. By default this reauthentication will occur in the following ways:
+ * <ul>
+ * <li>BASIC - call the realm using the plain text user name and password cached by the SSO Valve if available. If not
+ * cached, obtain those values from the request. If not present in the request, request them from the user agent.</li>
+ * <li>FORM - call the realm using the plain text user name and password cached by the SSO Valve if available. If not
+ * cached, request them from the user agent.</li>
+ * <li>DIGEST - call the realm using the credentials present in the request. If not present in the request, request them
+ * from the user agent.</li>
+ * <li>CLIENT-CERT - call the realm using the credentials present in the TLS connection. If not present in the TLS
+ * connection, request them from the user agent.</li>
+ * <li>SPNEGO - request authentication credentials from the user agent.</li>
+ * </ul>
+ * Note that this means that enabling reauthentication only makes sense if there are two or more web applications in the
+ * Host that use BASIC or FORM. If that is not the case, the SSO Valve will just add processing overhead.
  */
 public class SingleSignOn extends ValveBase {
 
@@ -426,8 +452,8 @@ public class SingleSignOn extends ValveBase {
         Session session;
         try {
             session = manager.findSession(key.getSessionId());
-        } catch (IOException e) {
-            containerLog.warn(sm.getString("singleSignOn.sessionExpire.managerError", key), e);
+        } catch (IOException ioe) {
+            containerLog.warn(sm.getString("singleSignOn.sessionExpire.managerError", key), ioe);
             return;
         }
         if (session == null) {
@@ -439,8 +465,8 @@ public class SingleSignOn extends ValveBase {
 
 
     /**
-     * Attempts reauthentication to the given <code>Realm</code> using the credentials associated with the single
-     * sign-on session identified by argument <code>ssoId</code>.
+     * Attempts reauthentication to the given <code>Realm</code> using the cached plain text credentials associated with
+     * the single sign-on session identified by argument <code>ssoId</code>.
      * <p>
      * If reauthentication is successful, the <code>Principal</code> and authorization type associated with the SSO
      * session will be bound to the given <code>Request</code> object via calls to {@link Request#setAuthType
@@ -571,12 +597,39 @@ public class SingleSignOn extends ValveBase {
 
     @Override
     protected void startInternal() throws LifecycleException {
-        Container c = getContainer();
-        while (c != null && !(c instanceof Engine)) {
-            c = c.getParent();
+        Container container = getContainer();
+        while (container != null && !(container instanceof Engine)) {
+            container = container.getParent();
         }
-        if (c != null) {
-            engine = (Engine) c;
+        if (container != null) {
+            engine = (Engine) container;
+        }
+        // Starting with the associated container, verify it has a realm associated,
+        // and that no child container returns a different realm
+        container = getContainer();
+        Realm containerRealm = container.getRealm();
+        if (containerRealm == null) {
+            containerLog.warn(sm.getString("singleSignOn.noRealm", container.getName()));
+        } else {
+            if (container instanceof Engine) {
+                for (Container host : engine.findChildren()) {
+                    if (host.getRealm() != containerRealm) {
+                        containerLog.warn(sm.getString("singleSignOn.duplicateRealm", host.getName()));
+                    } else {
+                        for (Container context : host.findChildren()) {
+                            if (context.getRealm() != containerRealm) {
+                                containerLog.warn(sm.getString("singleSignOn.duplicateRealm", context.getName()));
+                            }
+                        }
+                    }
+                }
+            } else if (container instanceof Host) {
+                for (Container context : container.findChildren()) {
+                    if (context.getRealm() != containerRealm) {
+                        containerLog.warn(sm.getString("singleSignOn.duplicateRealm", context.getName()));
+                    }
+                }
+            }
         }
         super.startInternal();
     }
@@ -586,5 +639,28 @@ public class SingleSignOn extends ValveBase {
     protected void stopInternal() throws LifecycleException {
         super.stopInternal();
         engine = null;
+    }
+
+    protected void sessionChangedId(String ssoId, Session session, String oldSessionId) {
+        if (containerLog.isDebugEnabled()) {
+            containerLog.debug(sm.getString("singleSignOn.debug.sessionChangedId", session, oldSessionId, ssoId));
+        }
+
+        SingleSignOnEntry entry = cache.get(ssoId);
+        if (entry == null) {
+            return;
+        }
+
+        /*
+         * Associate the new sessionId with this SingleSignOnEntry. A SessionListener will be registered for the new
+         * sessionID. If not, then we would not notice any subsequent Session.SESSION_DESTROYED_EVENT for the session.
+         */
+        entry.addSession(this, ssoId, session);
+
+        /*
+         * Remove the obsolete sessionId from the SingleSignOnEntry. The sessionId part of the SingleSignOnSessionKey is
+         * final.
+         */
+        entry.removeSession(session, oldSessionId);
     }
 }

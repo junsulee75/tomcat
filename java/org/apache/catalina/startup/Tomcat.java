@@ -131,8 +131,6 @@ import org.apache.tomcat.util.res.StringManager;
  *
  * @see <a href=
  *          "https://gitbox.apache.org/repos/asf?p=tomcat.git;a=blob;f=test/org/apache/catalina/startup/TestTomcat.java">TestTomcat</a>
- *
- * @author Costin Manolache
  */
 public class Tomcat {
 
@@ -811,7 +809,7 @@ public class Tomcat {
         }
         try {
             baseFile = baseFile.getCanonicalFile();
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             baseFile = baseFile.getAbsoluteFile();
         }
         server.setCatalinaBase(baseFile);
@@ -828,7 +826,7 @@ public class Tomcat {
             }
             try {
                 homeFile = homeFile.getCanonicalFile();
-            } catch (IOException e) {
+            } catch (IOException ioe) {
                 homeFile = homeFile.getAbsoluteFile();
             }
             server.setCatalinaHome(homeFile);
@@ -876,10 +874,10 @@ public class Tomcat {
 
 
     /**
-     * By default, when calling addWebapp() to create a Context, the settings from the default web.xml are added to
-     * the context. Calling this method with a <code>false</code> value prior to calling addWebapp() allows to opt out
-     * of the default settings. In that event you will need to add the configurations yourself, either programmatically
-     * or by using web.xml deployment descriptors.
+     * By default, when calling addWebapp() to create a Context, the settings from the default web.xml are added to the
+     * context. Calling this method with a <code>false</code> value prior to calling addWebapp() allows to opt out of
+     * the default settings. In that event you will need to add the configurations yourself, either programmatically or
+     * by using web.xml deployment descriptors.
      *
      * @param addDefaultWebXmlToWebapp <code>false</code> will prevent the class from automatically adding the default
      *                                     settings when calling addWebapp(). <code>true</code> will add the default
@@ -992,7 +990,6 @@ public class Tomcat {
      * <li>MIME mappings (subset of those in conf/web.xml)</li>
      * <li>Welcome files</li>
      * </ul>
-     * TODO: Align the MIME mappings with conf/web.xml - possibly via a common file.
      *
      * @param contextPath The path of the context to set the defaults for
      */
@@ -1034,11 +1031,15 @@ public class Tomcat {
         ctx.addWelcomeFile("index.html");
         ctx.addWelcomeFile("index.htm");
         ctx.addWelcomeFile("index.jsp");
+        // Any application configured welcome files should override the defaults.
+        if (ctx instanceof StandardContext stdCtx) {
+            stdCtx.setReplaceWelcomeFiles(true);
+        }
     }
 
 
     /**
-     * Add the default MIME type mappings to the provide Context.
+     * Add the default MIME type mappings to the provided Context.
      *
      * @param context The web application to which the default MIME type mappings should be added.
      */
@@ -1049,8 +1050,8 @@ public class Tomcat {
             for (Map.Entry<Object,Object> entry : defaultMimeMappings.entrySet()) {
                 context.addMimeMapping((String) entry.getKey(), (String) entry.getValue());
             }
-        } catch (IOException e) {
-            throw new IllegalStateException(sm.getString("tomcat.defaultMimeTypeMappingsFail"), e);
+        } catch (IOException ioe) {
+            throw new IllegalStateException(sm.getString("tomcat.defaultMimeTypeMappingsFail"), ioe);
         }
     }
 
@@ -1182,9 +1183,9 @@ public class Tomcat {
             if (entry != null) {
                 result = UriUtil.buildJarUrl(docBase, Constants.ApplicationContextXml);
             }
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             Logger.getLogger(getLoggerName(getHost(), contextName)).log(Level.WARNING,
-                    sm.getString("tomcat.noContextXml", docBase), e);
+                    sm.getString("tomcat.noContextXml", docBase), ioe);
         }
         return result;
     }
@@ -1193,7 +1194,7 @@ public class Tomcat {
         // Graal native images don't load any configuration except the VM default
         if (JreCompat.isGraalAvailable()) {
             try (InputStream is = new FileInputStream(
-                System.getProperty("java.util.logging.config.file", "conf/logging.properties"))) {
+                    System.getProperty("java.util.logging.config.file", "conf/logging.properties"))) {
                 LogManager.getLogManager().readConfiguration(is);
             } catch (SecurityException | IOException e) {
                 // Ignore, the VM default will be used

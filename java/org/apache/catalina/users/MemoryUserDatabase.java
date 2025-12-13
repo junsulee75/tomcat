@@ -57,8 +57,6 @@ import org.xml.sax.Attributes;
  * This class does not enforce what, in an RDBMS, would be called referential integrity. Concurrent modifications may
  * result in inconsistent data such as a User retaining a reference to a Role that has been removed from the database.
  *
- * @author Craig R. McClanahan
- *
  * @since 4.1
  */
 /*
@@ -481,10 +479,8 @@ public class MemoryUserDatabase implements UserDatabase {
                 // Print the file prolog
                 writer.println("<?xml version='1.0' encoding='utf-8'?>");
                 writer.println("<tomcat-users xmlns=\"http://tomcat.apache.org/xml\"");
-                writer.print("              ");
-                writer.println("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
-                writer.print("              ");
-                writer.println("xsi:schemaLocation=\"http://tomcat.apache.org/xml tomcat-users.xsd\"");
+                writer.println("              xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"");
+                writer.println("              xsi:schemaLocation=\"http://tomcat.apache.org/xml tomcat-users.xsd\"");
                 writer.println("              version=\"1.0\">");
 
                 // Print entries for each defined role, group, and user
@@ -562,11 +558,11 @@ public class MemoryUserDatabase implements UserDatabase {
                 if (writer.checkError()) {
                     throw new IOException(sm.getString("memoryUserDatabase.writeException", fileNew.getAbsolutePath()));
                 }
-            } catch (IOException e) {
+            } catch (IOException ioe) {
                 if (fileNew.exists() && !fileNew.delete()) {
                     log.warn(sm.getString("memoryUserDatabase.fileDelete", fileNew));
                 }
-                throw e;
+                throw ioe;
             }
             this.lastModified = fileNew.lastModified();
         } finally {
@@ -632,8 +628,8 @@ public class MemoryUserDatabase implements UserDatabase {
                     writeLock.unlock();
                 }
             }
-        } catch (Exception ioe) {
-            log.error(sm.getString("memoryUserDatabase.reloadError", id, uri), ioe);
+        } catch (Exception e) {
+            log.error(sm.getString("memoryUserDatabase.reloadError", id, uri), e);
         } finally {
             if (uConn != null) {
                 try {
@@ -654,8 +650,8 @@ public class MemoryUserDatabase implements UserDatabase {
 
     @Override
     public String toString() {
-        return "MemoryUserDatabase[id=" + this.id + ",pathname=" + pathname + ",groupCount=" +
-                this.groups.size() + ",roleCount=" + this.roles.size() + ",userCount=" + this.users.size() + ']';
+        return "MemoryUserDatabase[id=" + this.id + ",pathname=" + pathname + ",groupCount=" + this.groups.size() +
+                ",roleCount=" + this.roles.size() + ",userCount=" + this.users.size() + ']';
     }
 }
 

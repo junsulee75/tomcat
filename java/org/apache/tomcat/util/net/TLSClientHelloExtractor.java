@@ -29,11 +29,12 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.buf.HexUtils;
 import org.apache.tomcat.util.http.parser.HttpParser;
 import org.apache.tomcat.util.net.openssl.ciphers.Cipher;
+import org.apache.tomcat.util.net.openssl.ciphers.Group;
+import org.apache.tomcat.util.net.openssl.ciphers.SignatureScheme;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
- * This class extracts the SNI host name and ALPN protocols from a TLS
- * client-hello message.
+ * This class extracts the SNI host name and ALPN protocols from a TLS client-hello message.
  */
 public class TLSClientHelloExtractor {
 
@@ -46,28 +47,33 @@ public class TLSClientHelloExtractor {
     private final String sniValue;
     private final List<String> clientRequestedApplicationProtocols;
     private final List<String> clientRequestedProtocols;
+    private final List<Group> clientSupportedGroups;
+    private final List<SignatureScheme> clientSignatureSchemes;
 
     private static final int TLS_RECORD_HEADER_LEN = 5;
 
     private static final int TLS_EXTENSION_SERVER_NAME = 0;
+    private static final int TLS_EXTENSION_SUPPORTED_GROUPS = 10;
+    // Note: Signature algorithms is the name of the extension
+    // Starting with TLS 1.3, this contains signature schemes
+    // For TLS before 1.3, this contains signature algorithms
+    private static final int TLS_EXTENSION_SIGNATURE_ALGORITHMS = 13;
     private static final int TLS_EXTENSION_ALPN = 16;
     private static final int TLS_EXTENSION_SUPPORTED_VERSION = 43;
 
-    public static byte[] USE_TLS_RESPONSE = ("HTTP/1.1 400 \r\n" +
-            "Content-Type: text/plain;charset=UTF-8\r\n" +
-            "Connection: close\r\n" +
-            "\r\n" +
-            "Bad Request\r\n" +
-            "This combination of host and port requires TLS.\r\n").getBytes(StandardCharsets.UTF_8);
+    public static byte[] USE_TLS_RESPONSE =
+            ("HTTP/1.1 400 \r\n" + "Content-Type: text/plain;charset=UTF-8\r\n" + "Connection: close\r\n" + "\r\n" +
+                    "Bad Request\r\n" + "This combination of host and port requires TLS.\r\n")
+                    .getBytes(StandardCharsets.UTF_8);
 
 
     /**
-     * Creates the instance of the parser and processes the provided buffer. The
-     * buffer position and limit will be modified during the execution of this
-     * method, but they will be returned to the original values before the method
+     * Creates the instance of the parser and processes the provided buffer. The buffer position and limit will be
+     * modified during the execution of this method, but they will be returned to the original values before the method
      * exits.
      *
      * @param netInBuffer The buffer containing the TLS data to process
+     *
      * @throws IOException If the client hello message is malformed
      */
     public TLSClientHelloExtractor(ByteBuffer netInBuffer) throws IOException {
@@ -80,6 +86,8 @@ public class TLSClientHelloExtractor {
         List<String> clientRequestedCipherNames = new ArrayList<>();
         List<String> clientRequestedApplicationProtocols = new ArrayList<>();
         List<String> clientRequestedProtocols = new ArrayList<>();
+        List<Group> clientSupportedGroups = new ArrayList<>();
+        List<SignatureScheme> clientSignatureSchemes = new ArrayList<>();
         String sniValue = null;
         try {
             // Switch to read mode.
@@ -150,26 +158,32 @@ public class TLSClientHelloExtractor {
             skipBytes(netInBuffer, 2);
             // Read the extensions until we run out of data or find the data
             // we need
-            while (netInBuffer.hasRemaining() && (sniValue == null ||
-                    clientRequestedApplicationProtocols.isEmpty() || clientRequestedProtocols.isEmpty())) {
+            while (netInBuffer.hasRemaining() && (sniValue == null || clientRequestedApplicationProtocols.isEmpty() ||
+                    clientRequestedProtocols.isEmpty())) {
                 // Extension type is two byte
                 char extensionType = netInBuffer.getChar();
                 // Extension size is another two bytes
                 char extensionDataSize = netInBuffer.getChar();
                 switch (extensionType) {
-                case TLS_EXTENSION_SERVER_NAME: {
-                    sniValue = readSniExtension(netInBuffer);
-                    break;
-                }
-                case TLS_EXTENSION_ALPN:
-                    readAlpnExtension(netInBuffer, clientRequestedApplicationProtocols);
-                    break;
-                case TLS_EXTENSION_SUPPORTED_VERSION:
-                    readSupportedVersions(netInBuffer, clientRequestedProtocols);
-                    break;
-                default: {
-                    skipBytes(netInBuffer, extensionDataSize);
-                }
+                    case TLS_EXTENSION_SERVER_NAME: {
+                        sniValue = readSniExtension(netInBuffer);
+                        break;
+                    }
+                    case TLS_EXTENSION_SUPPORTED_GROUPS:
+                        readSupportedGroups(netInBuffer, clientSupportedGroups);
+                        break;
+                    case TLS_EXTENSION_SIGNATURE_ALGORITHMS:
+                        readSignatureSchemes(netInBuffer, clientSignatureSchemes);
+                        break;
+                    case TLS_EXTENSION_ALPN:
+                        readAlpnExtension(netInBuffer, clientRequestedApplicationProtocols);
+                        break;
+                    case TLS_EXTENSION_SUPPORTED_VERSION:
+                        readSupportedVersions(netInBuffer, clientRequestedProtocols);
+                        break;
+                    default: {
+                        skipBytes(netInBuffer, extensionDataSize);
+                    }
                 }
             }
             if (clientRequestedProtocols.isEmpty()) {
@@ -185,6 +199,14 @@ public class TLSClientHelloExtractor {
             this.clientRequestedApplicationProtocols = clientRequestedApplicationProtocols;
             this.sniValue = sniValue;
             this.clientRequestedProtocols = clientRequestedProtocols;
+            this.clientSupportedGroups = clientSupportedGroups;
+            this.clientSignatureSchemes = clientSignatureSchemes;
+            if (log.isTraceEnabled()) {
+                log.trace("TLS Client Hello: " + clientRequestedCiphers + " Names " + clientRequestedCipherNames +
+                        " Protocols " + clientRequestedApplicationProtocols + " sniValue " + sniValue +
+                        " clientRequestedProtocols " + clientRequestedProtocols + " clientSupportedGroups " +
+                        clientSupportedGroups + " clientSignatureSchemes " + clientSignatureSchemes);
+            }
             // Whatever happens, return the buffer to its original state
             netInBuffer.limit(limit);
             netInBuffer.position(pos);
@@ -198,8 +220,7 @@ public class TLSClientHelloExtractor {
 
 
     /**
-     * @return The SNI value provided by the client converted to lower case if
-     *         not already lower case.
+     * @return The SNI value provided by the client converted to lower case if not already lower case.
      */
     public String getSNIValue() {
         if (result == ExtractorResult.COMPLETE) {
@@ -246,6 +267,24 @@ public class TLSClientHelloExtractor {
     }
 
 
+    public List<Group> getClientSupportedGroups() {
+        if (result == ExtractorResult.COMPLETE || result == ExtractorResult.NOT_PRESENT) {
+            return clientSupportedGroups;
+        } else {
+            throw new IllegalStateException(sm.getString("sniExtractor.tooEarly"));
+        }
+    }
+
+
+    public List<SignatureScheme> getClientSignatureSchemes() {
+        if (result == ExtractorResult.COMPLETE || result == ExtractorResult.NOT_PRESENT) {
+            return clientSignatureSchemes;
+        } else {
+            throw new IllegalStateException(sm.getString("sniExtractor.tooEarly"));
+        }
+    }
+
+
     private static ExtractorResult handleIncompleteRead(ByteBuffer bb) {
         if (bb.limit() == bb.capacity()) {
             // Buffer not big enough
@@ -281,8 +320,8 @@ public class TLSClientHelloExtractor {
     private static boolean isHttp(ByteBuffer bb) {
         // Based on code in Http11InputBuffer
         // Note: The actual request is not important. This code only checks that
-        //       the buffer contains a correctly formatted HTTP request line.
-        //       The method, target and protocol are not validated.
+        // the buffer contains a correctly formatted HTTP request line.
+        // The method, target and protocol are not validated.
         byte chr;
         bb.position(0);
 
@@ -413,6 +452,34 @@ public class TLSClientHelloExtractor {
         // Then the list of protocols
         for (int i = 0; i < count; i++) {
             protocolNames.add(readProtocol(bb));
+        }
+    }
+
+
+    private static void readSupportedGroups(ByteBuffer bb, List<Group> groups) {
+        // First 2 bytes are size of the group list
+        int toRead = bb.getChar() / 2;
+        // Then the list of groups
+        for (int i = 0; i < toRead; i++) {
+            char id = bb.getChar();
+            Group group = Group.valueOf(id);
+            if (group != null) {
+                groups.add(group);
+            }
+        }
+    }
+
+
+    private static void readSignatureSchemes(ByteBuffer bb, List<SignatureScheme> signatureSchemes) {
+        // First 2 bytes are size of the signature algorithm list
+        int toRead = bb.getChar() / 2;
+        // Then the list of schemes
+        for (int i = 0; i < toRead; i++) {
+            char id = bb.getChar();
+            SignatureScheme signatureScheme = SignatureScheme.valueOf(id);
+            if (signatureScheme != null) {
+                signatureSchemes.add(signatureScheme);
+            }
         }
     }
 

@@ -18,6 +18,7 @@ package org.apache.catalina.core;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -48,9 +49,6 @@ import org.apache.tomcat.util.ExceptionUtils;
 /**
  * Standard implementation of the <b>Host</b> interface. Each child container must be a Context implementation to
  * process the requests directed to a particular web application.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
  */
 public class StandardHost extends ContainerBase implements Host {
 
@@ -231,6 +229,12 @@ public class StandardHost extends ContainerBase implements Host {
             // Ignore
         }
 
+        Path appBasePath = file.toPath();
+        Path basePath = getCatalinaBase().toPath();
+        if (basePath.startsWith(appBasePath)) {
+            log.warn(sm.getString("standardHost.problematicAppBaseParent", getName()));
+        }
+
         this.appBaseFile = file;
         return file;
     }
@@ -272,6 +276,12 @@ public class StandardHost extends ContainerBase implements Host {
             file = file.getCanonicalFile();
         } catch (IOException ioe) {
             // Ignore
+        }
+
+        Path appBasePath = file.toPath();
+        Path basePath = getCatalinaBase().toPath();
+        if (basePath.startsWith(appBasePath)) {
+            log.warn(sm.getString("standardHost.problematicLegacyAppBaseParent", getName()));
         }
 
         this.legacyAppBaseFile = file;
@@ -330,7 +340,8 @@ public class StandardHost extends ContainerBase implements Host {
         }
         try {
             file = file.getCanonicalFile();
-        } catch (IOException e) {// ignore
+        } catch (IOException ignore) {
+            // Ignore
         }
         this.hostConfigBase = file;
         return file;

@@ -44,8 +44,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * This servlet will dump JMX attributes in a simple format and implement proxy services for modeler.
- *
- * @author Costin Manolache
  */
 public class JMXProxyServlet extends HttpServlet {
 
@@ -150,9 +148,9 @@ public class JMXProxyServlet extends HttpServlet {
             writer.print(" = ");
 
             writer.println(MBeanDumper.escape(valueStr));
-        } catch (Exception ex) {
-            writer.println("Error - " + ex.toString());
-            ex.printStackTrace(writer);
+        } catch (Exception e) {
+            writer.println("Error - " + e.toString());
+            e.printStackTrace(writer);
         }
     }
 
@@ -161,9 +159,9 @@ public class JMXProxyServlet extends HttpServlet {
         try {
             setAttributeInternal(onameStr, att, val);
             writer.println("OK - Attribute set");
-        } catch (Exception ex) {
-            writer.println("Error - " + ex.toString());
-            ex.printStackTrace(writer);
+        } catch (Exception e) {
+            writer.println("Error - " + e.toString());
+            e.printStackTrace(writer);
         }
     }
 
@@ -175,9 +173,9 @@ public class JMXProxyServlet extends HttpServlet {
             names = mBeanServer.queryNames(new ObjectName(qry), null);
             writer.println("OK - Number of results: " + names.size());
             writer.println();
-        } catch (Exception ex) {
-            writer.println("Error - " + ex.toString());
-            ex.printStackTrace(writer);
+        } catch (Exception e) {
+            writer.println("Error - " + e.toString());
+            e.printStackTrace(writer);
             return;
         }
 
@@ -207,9 +205,9 @@ public class JMXProxyServlet extends HttpServlet {
             } else {
                 writer.println("OK - Operation " + op + " without return value");
             }
-        } catch (Exception ex) {
-            writer.println("Error - " + ex.toString());
-            ex.printStackTrace(writer);
+        } catch (Exception e) {
+            writer.println("Error - " + e.toString());
+            e.printStackTrace(writer);
         }
     }
 

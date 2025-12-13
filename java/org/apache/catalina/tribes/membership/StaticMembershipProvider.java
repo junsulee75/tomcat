@@ -374,8 +374,8 @@ public class StaticMembershipProvider extends MembershipProviderBase
 
         @Override
         public String toString() {
-            return "MemberMessage[" + "name=" + new String(membershipId) + "; type=" +
-                    getTypeDesc() + "; member=" + member + ']';
+            return "MemberMessage[" + "name=" + new String(membershipId) + "; type=" + getTypeDesc() + "; member=" +
+                    member + ']';
         }
 
         protected String getTypeDesc() {
@@ -397,8 +397,8 @@ public class StaticMembershipProvider extends MembershipProviderBase
                     ping();
                 } catch (InterruptedException ix) {
                     // Ignore
-                } catch (Exception x) {
-                    log.warn(sm.getString("staticMembershipProvider.pingThread.failed"), x);
+                } catch (Exception e) {
+                    log.warn(sm.getString("staticMembershipProvider.pingThread.failed"), e);
                 }
             }
         }

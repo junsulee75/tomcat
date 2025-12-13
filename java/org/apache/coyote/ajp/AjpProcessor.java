@@ -48,6 +48,7 @@ import org.apache.juli.logging.LogFactory;
 import org.apache.tomcat.util.ExceptionUtils;
 import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.buf.MessageBytes;
+import org.apache.tomcat.util.http.Method;
 import org.apache.tomcat.util.http.MimeHeaders;
 import org.apache.tomcat.util.net.AbstractEndpoint.Handler.SocketState;
 import org.apache.tomcat.util.net.ApplicationBufferHandler;
@@ -128,20 +129,19 @@ public class AjpProcessor extends AbstractProcessor {
         System.arraycopy(pongMessage.getBuffer(), 0, pongMessageArray, 0, pongMessage.getLen());
 
         // Build Map of Java Servlet to Jakarta Servlet attribute names
-        jakartaAttributeMapping = Map.of(
-            "jakarta.servlet.request.secure_protocol", "jakarta.servlet.request.secure_protocol",
-            "jakarta.servlet.request.cipher_suite", "jakarta.servlet.request.cipher_suite",
-            "jakarta.servlet.request.key_size", "jakarta.servlet.request.key_size",
-            "jakarta.servlet.request.ssl_session", "jakarta.servlet.request.ssl_session",
-            "jakarta.servlet.request.X509Certificate", "jakarta.servlet.request.X509Certificate",
-            "javax.servlet.request.cipher_suite", "jakarta.servlet.request.cipher_suite",
-            "javax.servlet.request.key_size", "jakarta.servlet.request.key_size",
-            "javax.servlet.request.ssl_session", "jakarta.servlet.request.ssl_session",
-            "javax.servlet.request.X509Certificate", "jakarta.servlet.request.X509Certificate");
+        jakartaAttributeMapping =
+                Map.of("jakarta.servlet.request.secure_protocol", "jakarta.servlet.request.secure_protocol",
+                        "jakarta.servlet.request.cipher_suite", "jakarta.servlet.request.cipher_suite",
+                        "jakarta.servlet.request.key_size", "jakarta.servlet.request.key_size",
+                        "jakarta.servlet.request.ssl_session", "jakarta.servlet.request.ssl_session",
+                        "jakarta.servlet.request.X509Certificate", "jakarta.servlet.request.X509Certificate",
+                        "javax.servlet.request.cipher_suite", "jakarta.servlet.request.cipher_suite",
+                        "javax.servlet.request.key_size", "jakarta.servlet.request.key_size",
+                        "javax.servlet.request.ssl_session", "jakarta.servlet.request.ssl_session",
+                        "javax.servlet.request.X509Certificate", "jakarta.servlet.request.X509Certificate");
 
-        iisTlsAttributes = Set.of(
-            "CERT_ISSUER", "CERT_SUBJECT", "CERT_COOKIE", "HTTPS_SERVER_SUBJECT", "CERT_FLAGS", "HTTPS_SECRETKEYSIZE",
-            "CERT_SERIALNUMBER", "HTTPS_SERVER_ISSUER", "HTTPS_KEYSIZE");
+        iisTlsAttributes = Set.of("CERT_ISSUER", "CERT_SUBJECT", "CERT_COOKIE", "HTTPS_SERVER_SUBJECT", "CERT_FLAGS",
+                "HTTPS_SECRETKEYSIZE", "CERT_SERIALNUMBER", "HTTPS_SERVER_ISSUER", "HTTPS_KEYSIZE");
     }
 
 
@@ -363,11 +363,11 @@ public class AjpProcessor extends AbstractProcessor {
                     try {
                         socketWrapper.write(true, pongMessageArray, 0, pongMessageArray.length);
                         socketWrapper.flush(true);
-                    } catch (IOException e) {
+                    } catch (IOException ioe) {
                         if (getLog().isDebugEnabled()) {
-                            getLog().debug(sm.getString("ajpprocessor.pongFail"), e);
+                            getLog().debug(sm.getString("ajpprocessor.pongFail"), ioe);
                         }
-                        setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);
+                        setErrorState(ErrorState.CLOSE_CONNECTION_NOW, ioe);
                     }
                     recycle();
                     continue;
@@ -380,13 +380,15 @@ public class AjpProcessor extends AbstractProcessor {
                     setErrorState(ErrorState.CLOSE_CONNECTION_NOW, null);
                     break;
                 }
-                request.setStartTimeNanos(System.nanoTime());
-            } catch (IOException e) {
-                setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);
+                request.markStartTime();
+            } catch (IOException ioe) {
+                setErrorState(ErrorState.CLOSE_CONNECTION_NOW, ioe);
                 break;
             } catch (Throwable t) {
                 ExceptionUtils.handleThrowable(t);
-                getLog().debug(sm.getString("ajpprocessor.header.error"), t);
+                if (getLog().isDebugEnabled()) {
+                    getLog().debug(sm.getString("ajpprocessor.header.error"), t);
+                }
                 // 400 - Bad Request
                 response.setStatus(400);
                 setErrorState(ErrorState.CLOSE_CLEAN, t);
@@ -399,7 +401,9 @@ public class AjpProcessor extends AbstractProcessor {
                     prepareRequest();
                 } catch (Throwable t) {
                     ExceptionUtils.handleThrowable(t);
-                    getLog().debug(sm.getString("ajpprocessor.request.prepare"), t);
+                    if (getLog().isDebugEnabled()) {
+                        getLog().debug(sm.getString("ajpprocessor.request.prepare"), t);
+                    }
                     // 500 - Internal Server Error
                     response.setStatus(500);
                     setErrorState(ErrorState.CLOSE_CLEAN, t);
@@ -565,7 +569,7 @@ public class AjpProcessor extends AbstractProcessor {
             // Zero length message.
             return true;
         } else {
-            if (messageLength > message.getBuffer().length) {
+            if (messageLength > (buf.length - Constants.H_SIZE)) {
                 // Message too long for the buffer
                 // Need to trigger a 400 response
                 String msg = sm.getString("ajpprocessor.header.tooLong", Integer.valueOf(messageLength),
@@ -638,7 +642,7 @@ public class AjpProcessor extends AbstractProcessor {
         byte methodCode = requestHeaderMessage.getByte();
         if (methodCode != Constants.SC_M_JK_STORED) {
             String methodName = Constants.getMethodForCode(methodCode - 1);
-            request.method().setString(methodName);
+            request.setMethod(methodName);
         }
 
         requestHeaderMessage.getBytes(request.protocol());
@@ -793,8 +797,8 @@ public class AjpProcessor extends AbstractProcessor {
 
                 // nothing
                 case Constants.SC_A_SSL_CERT ->
-                    // SSL certificate extraction is lazy, moved to JkCoyoteHandler
-                    requestHeaderMessage.getBytes(certificates);
+                        // SSL certificate extraction is lazy, moved to JkCoyoteHandler
+                        requestHeaderMessage.getBytes(certificates);
                 case Constants.SC_A_SSL_CIPHER -> {
                     requestHeaderMessage.getBytes(tmpMB);
                     request.setAttribute(SSLSupport.CIPHER_SUITE_KEY, tmpMB.toString());
@@ -804,8 +808,12 @@ public class AjpProcessor extends AbstractProcessor {
                     request.setAttribute(SSLSupport.SESSION_ID_KEY, tmpMB.toString());
                 }
                 case Constants.SC_A_SSL_KEY_SIZE ->
-                    request.setAttribute(SSLSupport.KEY_SIZE_KEY, Integer.valueOf(requestHeaderMessage.getInt()));
-                case Constants.SC_A_STORED_METHOD -> requestHeaderMessage.getBytes(request.method());
+                        request.setAttribute(SSLSupport.KEY_SIZE_KEY, Integer.valueOf(requestHeaderMessage.getInt()));
+                case Constants.SC_A_STORED_METHOD -> {
+                    requestHeaderMessage.getBytes(tmpMB);
+                    ByteChunk tmpBC = tmpMB.getByteChunk();
+                    request.setMethod(tmpBC.getBytes(), tmpBC.getStart(), tmpBC.getLength());
+                }
                 case Constants.SC_A_SECRET -> {
                     requestHeaderMessage.getBytes(tmpMB);
                     if (secret != null && !secret.isEmpty()) {
@@ -869,9 +877,9 @@ public class AjpProcessor extends AbstractProcessor {
     protected void populateHost() {
         try {
             request.serverName().duplicate(request.localName());
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             response.setStatus(400);
-            setErrorState(ErrorState.CLOSE_CLEAN, e);
+            setErrorState(ErrorState.CLOSE_CLEAN, ioe);
         }
     }
 
@@ -899,7 +907,7 @@ public class AjpProcessor extends AbstractProcessor {
         // Responses with certain status codes and/or methods are not permitted to include a response body.
         int statusCode = response.getStatus();
         if (statusCode < 200 || statusCode == 204 || statusCode == 205 || statusCode == 304 ||
-                request.method().equals("HEAD")) {
+                Method.HEAD.equals(request.getMethod())) {
             // No entity body
             swallowResponse = true;
         }
@@ -1032,10 +1040,12 @@ public class AjpProcessor extends AbstractProcessor {
         if (empty && doRead) {
             try {
                 refillReadBuffer(false);
-            } catch (IOException timeout) {
-                // Not ideal. This will indicate that data is available
-                // which should trigger a read which in turn will trigger
-                // another IOException and that one can be thrown.
+            } catch (IOException ioe) {
+                /*
+                 * Probably a timeout. This approach isn't ideal but it works. Returning 1 will indicate that data is
+                 * available which should trigger a read which in turn will trigger another IOException and that one can
+                 * be thrown.
+                 */
                 return 1;
             }
         }
@@ -1277,8 +1287,8 @@ public class AjpProcessor extends AbstractProcessor {
                 // Validate and write response headers
                 try {
                     prepareResponse();
-                } catch (IOException e) {
-                    setErrorState(ErrorState.CLOSE_CONNECTION_NOW, e);
+                } catch (IOException ioe) {
+                    setErrorState(ErrorState.CLOSE_CONNECTION_NOW, ioe);
                 }
             }
 

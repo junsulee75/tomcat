@@ -52,6 +52,8 @@ import org.apache.tomcat.util.buf.ByteChunk;
 
 public class TestGenerator extends TomcatBaseTest {
 
+    private static final String NEW_LINE = System.lineSeparator();
+
     @Test
     public void testBug45015a() throws Exception {
         getTomcatInstanceTestWebapp(false, true);
@@ -244,8 +246,8 @@ public class TestGenerator extends TomcatBaseTest {
         public int doEndTag() throws JspException {
             try {
                 pageContext.getOut().print("attribute1: '" + attribute1 + "', " + "attribute2: '" + attribute2 + "'");
-            } catch (IOException e) {
-                throw new JspException(e);
+            } catch (IOException ioe) {
+                throw new JspException(ioe);
             }
             return EVAL_PAGE;
         }
@@ -260,11 +262,11 @@ public class TestGenerator extends TomcatBaseTest {
         try {
             getUrl("http://localhost:" + getPort() + "/test/bug5nnnn/bug56581.jsp", res, null);
             Assert.fail("An IOException was expected.");
-        } catch (IOException expected) {
-            // ErrorReportValve in Tomcat 8.0.9+ flushes and aborts the
-            // connection when an unexpected error is encountered and response
-            // has already been committed. It results in an exception here:
-            // java.io.IOException: Premature EOF
+        } catch (IOException ignore) {
+            /*
+             * ErrorReportValve flushes and aborts the connection when an unexpected error is encountered and response
+             * has already been committed. It results in an exception here: java.io.IOException: Premature EOF
+             */
         }
 
         String result = res.toString();
@@ -400,38 +402,38 @@ public class TestGenerator extends TomcatBaseTest {
         // This should break all subsequent requests
         ByteChunk body = new ByteChunk();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-01.jsp", body, null);
-        Assert.assertEquals("\n\n\n"
-                + "pageContext value=testValue\n"
-                + "request value=null\n"
-                + "session value=null\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=testValue" + NEW_LINE
+                + "request value=null" + NEW_LINE
+                + "session value=null" + NEW_LINE
                 + "application value=null", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-02.jsp", body, null);
-        Assert.assertEquals("\n\n\n"
-                + "pageContext value=testValue\n"
-                + "request value=null\n"
-                + "session value=null\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=testValue" + NEW_LINE
+                + "request value=null" + NEW_LINE
+                + "session value=null" + NEW_LINE
                 + "application value=null", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-03.jsp", body, null);
-        Assert.assertEquals("\n\n\n"
-                + "pageContext value=null\n"
-                + "request value=testValue\n"
-                + "session value=null\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=null" + NEW_LINE
+                + "request value=testValue" + NEW_LINE
+                + "session value=null" + NEW_LINE
                 + "application value=null", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-04.jsp", body, null);
-        Assert.assertEquals("\n\n\n"
-                + "pageContext value=null\n"
-                + "request value=null\n"
-                + "session value=testValue\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=null" + NEW_LINE
+                + "request value=null" + NEW_LINE
+                + "session value=testValue" + NEW_LINE
                 + "application value=null", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/set-05.jsp", body, null);
-        Assert.assertEquals("\n\n\n"
-                + "pageContext value=null\n"
-                + "request value=null\n"
-                + "session value=null\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=null" + NEW_LINE
+                + "request value=null" + NEW_LINE
+                + "session value=null" + NEW_LINE
                 + "application value=testValue", body.toString());
         body.recycle();
     }
@@ -731,6 +733,10 @@ public class TestGenerator extends TomcatBaseTest {
         }
     }
 
+    @Test
+    public void testLambdaScriptlets() throws Exception {
+        doTestJsp("lambda.jsp");
+    }
 
     @Test
     public void testInfoConflictNone() throws Exception {
@@ -1097,38 +1103,38 @@ public class TestGenerator extends TomcatBaseTest {
         // This should break all subsequent requests
         ByteChunk body = new ByteChunk();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-01.jsp", body, null);
-        Assert.assertEquals("\n\n\n\n\n\n\n"
-                + "pageContext value=null\n"
-                + "request value=testValue\n"
-                + "session value=testValue\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=null" + NEW_LINE
+                + "request value=testValue" + NEW_LINE
+                + "session value=testValue" + NEW_LINE
                 + "application value=testValue", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-02.jsp", body, null);
-        Assert.assertEquals("\n\n\n\n\n\n\n"
-                + "pageContext value=testValue\n"
-                + "request value=null\n"
-                + "session value=testValue\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=testValue" + NEW_LINE
+                + "request value=null" + NEW_LINE
+                + "session value=testValue" + NEW_LINE
                 + "application value=testValue", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-03.jsp", body, null);
-        Assert.assertEquals("\n\n\n\n\n\n\n"
-                + "pageContext value=testValue\n"
-                + "request value=testValue\n"
-                + "session value=null\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=testValue" + NEW_LINE
+                + "request value=testValue" + NEW_LINE
+                + "session value=null" + NEW_LINE
                 + "application value=testValue", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-04.jsp", body, null);
-        Assert.assertEquals("\n\n\n\n\n\n\n"
-                + "pageContext value=testValue\n"
-                + "request value=testValue\n"
-                + "session value=testValue\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=testValue" + NEW_LINE
+                + "request value=testValue" + NEW_LINE
+                + "session value=testValue" + NEW_LINE
                 + "application value=null", body.toString());
         body.recycle();
         getUrl("http://localhost:" + getPort() + "/test/jsp/generator/nonstandard/remove-05.jsp", body, null);
-        Assert.assertEquals("\n\n\n\n\n\n\n"
-                + "pageContext value=null\n"
-                + "request value=null\n"
-                + "session value=null\n"
+        Assert.assertEquals(NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE + NEW_LINE
+                + "pageContext value=null" + NEW_LINE
+                + "request value=null" + NEW_LINE
+                + "session value=null" + NEW_LINE
                 + "application value=null", body.toString());
         body.recycle();
     }

@@ -81,7 +81,7 @@ public class StandardRoot extends LifecycleMBeanBase implements WebResourceRoot 
     private boolean trackLockedFiles = false;
     private final Set<TrackedWebResource> trackedResources = ConcurrentHashMap.newKeySet();
 
-    private ArchiveIndexStrategy archiveIndexStrategy = ArchiveIndexStrategy.SIMPLE;
+    private ArchiveIndexStrategy archiveIndexStrategy = ArchiveIndexStrategy.BLOOM;
 
     // Constructs to make iteration over all WebResourceSets simpler
     private final List<WebResourceSet> mainResources = new ArrayList<>();
@@ -781,7 +781,7 @@ public class StandardRoot extends LifecycleMBeanBase implements WebResourceRoot 
                     trackedResource.getCreatedBy());
             try {
                 trackedResource.close();
-            } catch (IOException e) {
+            } catch (IOException ignore) {
                 // Ignore
             }
         }

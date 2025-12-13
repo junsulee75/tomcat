@@ -213,7 +213,8 @@ public class NioReplicationTask extends AbstractRxTask {
                     try {
                         Logs.MESSAGES.trace("NioReplicationThread - Received msg:" + new UniqueId(msg.getUniqueId()) +
                                 " at " + new java.sql.Timestamp(System.currentTimeMillis()));
-                    } catch (Throwable t) {
+                    } catch (Throwable ignore) {
+                        // Ignore
                     }
                 }
                 // process the message
@@ -227,7 +228,7 @@ public class NioReplicationTask extends AbstractRxTask {
                 }
             } catch (RemoteProcessException e) {
                 if (log.isDebugEnabled()) {
-                    log.error(sm.getString("nioReplicationTask.process.clusterMsg.failed"), e);
+                    log.debug(sm.getString("nioReplicationTask.process.clusterMsg.failed"), e);
                 }
                 if (ChannelData.sendAckSync(msg.getOptions())) {
                     sendAck(key, (WritableByteChannel) channel, Constants.FAIL_ACK_COMMAND, saddr);
@@ -279,8 +280,8 @@ public class NioReplicationTask extends AbstractRxTask {
                     log.trace("CKX Cancelling key:" + key);
                 }
 
-            } catch (Exception x) {
-                log.error(sm.getString("nioReplicationTask.error.register.key", key), x);
+            } catch (Exception e) {
+                log.error(sm.getString("nioReplicationTask.error.register.key", key), e);
             }
         };
         receiver.addEvent(r);
@@ -337,8 +338,12 @@ public class NioReplicationTask extends AbstractRxTask {
                         ((channel instanceof SocketChannel) ? ((SocketChannel) channel).socket().getInetAddress() :
                                 ((DatagramChannel) channel).socket().getInetAddress()));
             }
-        } catch (IOException x) {
-            log.warn(sm.getString("nioReplicationTask.unable.ack", x.getMessage()));
+        } catch (IOException ioe) {
+            if (log.isDebugEnabled()) {
+                log.debug(sm.getString("nioReplicationTask.unable.ack", ioe.getMessage()), ioe);
+            } else {
+                log.warn(sm.getString("nioReplicationTask.unable.ack", ioe.getMessage()));
+            }
         }
     }
 

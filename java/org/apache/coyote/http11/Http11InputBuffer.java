@@ -355,7 +355,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler,
                 // just skipping blank lines)
                 if (parsingRequestLinePhase == 0) {
                     parsingRequestLinePhase = 1;
-                    request.setStartTimeNanos(System.nanoTime());
+                    request.markStartTime();
                 }
                 chr = byteBuffer.get();
             } while (chr == Constants.CR || chr == Constants.LF);
@@ -383,8 +383,7 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler,
                 chr = byteBuffer.get();
                 if (chr == Constants.SP || chr == Constants.HT) {
                     space = true;
-                    request.method().setBytes(byteBuffer.array(), parsingRequestLineStart,
-                            pos - parsingRequestLineStart);
+                    request.setMethod(byteBuffer.array(), parsingRequestLineStart, pos - parsingRequestLineStart);
                 } else if (!HttpParser.isToken(chr)) {
                     // Avoid unknown protocol triggering an additional error
                     request.protocol().setString(Constants.HTTP_11);
@@ -429,34 +428,10 @@ public class Http11InputBuffer implements InputBuffer, ApplicationBufferHandler,
                     }
                 }
                 int pos = byteBuffer.position();
-                prevChr = chr;
                 chr = byteBuffer.get();
-                if (prevChr == Constants.CR && chr != Constants.LF) {
-                    // CR not followed by LF so not an HTTP/0.9 request and
-                    // therefore invalid. Trigger error handling.
-                    // Avoid unknown protocol triggering an additional error
-                    request.protocol().setString(Constants.HTTP_11);
-                    String invalidRequestTarget = parseInvalid(parsingRequestLineStart, byteBuffer);
-                    throw new IllegalArgumentException(sm.getString("iib.invalidRequestTarget", invalidRequestTarget));
-                }
                 if (chr == Constants.SP || chr == Constants.HT) {
                     space = true;
                     end = pos;
-                } else if (chr == Constants.CR) {
-                    // HTTP/0.9 style request. CR is optional. LF is not.
-                } else if (chr == Constants.LF) {
-                    // HTTP/0.9 style request
-                    // Stop this processing loop
-                    space = true;
-                    // Set blank protocol (indicates HTTP/0.9)
-                    request.protocol().setString("");
-                    // Skip the protocol processing
-                    parsingRequestLinePhase = 7;
-                    if (prevChr == Constants.CR) {
-                        end = pos - 1;
-                    } else {
-                        end = pos;
-                    }
                 } else if (chr == Constants.QUESTION && parsingRequestLineQPos == -1) {
                     parsingRequestLineQPos = pos;
                 } else if (parsingRequestLineQPos != -1 && !httpParser.isQueryRelaxed(chr)) {

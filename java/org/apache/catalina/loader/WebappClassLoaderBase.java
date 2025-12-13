@@ -101,9 +101,6 @@ import org.apache.tomcat.util.threads.ThreadPoolExecutor;
  * <strong>IMPLEMENTATION NOTE</strong> - As of 8.0, this class loader implements {@link InstrumentableClassLoader},
  * permitting web application classes to instrument other classes in the same web application. It does not permit
  * instrumentation of system or container classes or classes in other web apps.
- *
- * @author Remy Maucherat
- * @author Craig R. McClanahan
  */
 public abstract class WebappClassLoaderBase extends URLClassLoader
         implements Lifecycle, InstrumentableClassLoader, WebappProperties {
@@ -939,13 +936,13 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                         while ((numRead = stream.read(buf)) >= 0) {
                             baos.write(buf, 0, numRead);
                         }
-                    } catch (IOException e) {
-                        log.error(sm.getString("webappClassLoader.transformError", name), e);
+                    } catch (IOException ioe) {
+                        log.error(sm.getString("webappClassLoader.transformError", name), ioe);
                         return null;
                     } finally {
                         try {
                             stream.close();
-                        } catch (IOException e) {
+                        } catch (IOException ignore) {
                             // Ignore
                         }
                     }
@@ -973,7 +970,7 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
                         stream = url.openStream();
                     }
                 }
-            } catch (IOException e) {
+            } catch (IOException ioe) {
                 // Ignore
             }
             if (stream != null) {
@@ -1206,9 +1203,8 @@ public abstract class WebappClassLoaderBase extends URLClassLoader
         // It is not permitted to load resources once the web application has
         // been stopped.
         if (!state.isAvailable()) {
-            String msg = sm.getString("webappClassLoader.stopped", resource);
-            IllegalStateException ise = new IllegalStateException(msg);
-            log.info(msg, ise);
+            IllegalStateException ise = new IllegalStateException(sm.getString("webappClassLoader.stopped", resource));
+            log.info(ise.getMessage(), ise);
             throw ise;
         }
     }

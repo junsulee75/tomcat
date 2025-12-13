@@ -63,9 +63,6 @@ import org.apache.tomcat.util.modeler.Util;
 /**
  * Standard implementation of the <b>Wrapper</b> interface that represents an individual servlet definition. No child
  * Containers are allowed, and the parent Container must be a Context.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
  */
 public class StandardWrapper extends ContainerBase implements ServletConfig, Wrapper, NotificationEmitter {
 
@@ -578,9 +575,9 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                         countAllocated.incrementAndGet();
                     } catch (ServletException e) {
                         throw e;
-                    } catch (Throwable e) {
-                        ExceptionUtils.handleThrowable(e);
-                        throw new ServletException(sm.getString("standardWrapper.allocate"), e);
+                    } catch (Throwable t) {
+                        ExceptionUtils.handleThrowable(t);
+                        throw new ServletException(sm.getString("standardWrapper.allocate"), t);
                     }
                 }
                 if (!instanceInitialized) {
@@ -714,8 +711,8 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
             try {
                 jspMonitorON = new ObjectName(oname.toString());
                 Registry.getRegistry(null).registerComponent(instance, jspMonitorON, null);
-            } catch (Exception ex) {
-                log.warn(sm.getString("standardWrapper.jspMonitorError", instance));
+            } catch (Exception e) {
+                log.warn(sm.getString("standardWrapper.jspMonitorError", instance), e);
             }
         }
     }
@@ -758,8 +755,8 @@ public class StandardWrapper extends ContainerBase implements ServletConfig, Wra
                 unavailable(null);
                 // Restore the context ClassLoader
                 throw new ServletException(sm.getString("standardWrapper.notServlet", servletClass), e);
-            } catch (Throwable e) {
-                Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(e);
+            } catch (Throwable t) {
+                Throwable throwable = ExceptionUtils.unwrapInvocationTargetException(t);
                 ExceptionUtils.handleThrowable(throwable);
                 unavailable(null);
 

@@ -33,13 +33,6 @@ import org.xml.sax.InputSource;
 
 /**
  * This class has all the utility method(s). Ideally should move all the bean containers here.
- *
- * @author Mandar Raje.
- * @author Rajiv Mordani.
- * @author Danno Ferrin
- * @author Pierre Delisle
- * @author Shawn Bayern
- * @author Mark Roth
  */
 public class JspUtil {
 
@@ -793,7 +786,7 @@ public class JspUtil {
         } catch (IOException ioe) {
             try {
                 in.close();
-            } catch (IOException e) {
+            } catch (IOException ignore) {
                 // Ignore
             }
             throw ioe;

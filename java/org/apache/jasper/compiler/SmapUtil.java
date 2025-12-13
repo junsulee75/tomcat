@@ -39,12 +39,6 @@ import org.apache.juli.logging.LogFactory;
 
 /**
  * Contains static utilities for generating SMAP data based on the current version of Jasper.
- *
- * @author Jayson Falkner
- * @author Shawn Bayern
- * @author Robert Field (inner SDEInstaller class)
- * @author Mark Roth
- * @author Kin-man Chung
  */
 public class SmapUtil {
 

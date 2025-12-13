@@ -46,9 +46,6 @@ import org.apache.tomcat.InstanceManager;
 
 /**
  * Bunch of util methods that are used by code generated for useBean, getProperty and setProperty.
- *
- * @author Mandar Raje
- * @author Shawn Bayern
  */
 public class JspRuntimeLibrary {
 
@@ -281,8 +278,8 @@ public class JspRuntimeLibrary {
             } else {
                 return getValueFromPropertyEditorManager(t, propertyName, s);
             }
-        } catch (Exception ex) {
-            throw new JasperException(ex);
+        } catch (Exception e) {
+            throw new JasperException(e);
         }
     }
 
@@ -348,10 +345,10 @@ public class JspRuntimeLibrary {
                     }
                 }
             }
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
         if (!ignoreMethodNF && (method == null)) {
             if (type == null) {
@@ -574,10 +571,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getReadMethod(o.getClass(), prop);
             value = method.invoke(o, (Object[]) null);
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
         return value;
     }
@@ -587,12 +584,12 @@ public class JspRuntimeLibrary {
             ProtectedFunctionMapper functionMapper) throws JasperException {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
-            method.invoke(bean, PageContextImpl.proprietaryEvaluate(expression,
-                    method.getParameterTypes()[0], pageContext, functionMapper));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+            method.invoke(bean, PageContextImpl.proprietaryEvaluate(expression, method.getParameterTypes()[0],
+                    pageContext, functionMapper));
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -600,10 +597,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, value);
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -611,10 +608,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Integer.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -622,10 +619,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Short.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -633,10 +630,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Long.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -644,10 +641,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Double.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -655,10 +652,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Float.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -666,10 +663,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Character.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -677,10 +674,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Byte.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -688,10 +685,10 @@ public class JspRuntimeLibrary {
         try {
             Method method = getWriteMethod(bean.getClass(), prop);
             method.invoke(bean, Boolean.valueOf(value));
-        } catch (Exception ex) {
-            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(ex);
+        } catch (Exception e) {
+            Throwable thr = ExceptionUtils.unwrapInvocationTargetException(e);
             ExceptionUtils.handleThrowable(thr);
-            throw new JasperException(ex);
+            throw new JasperException(e);
         }
     }
 
@@ -733,8 +730,8 @@ public class JspRuntimeLibrary {
                         break;
                     }
                 }
-            } catch (Exception ex) {
-                throw new JasperException(ex);
+            } catch (Exception e) {
+                throw new JasperException(e);
             }
         }
         if (result == null) {
@@ -771,8 +768,8 @@ public class JspRuntimeLibrary {
                         break;
                     }
                 }
-            } catch (Exception ex) {
-                throw new JasperException(ex);
+            } catch (Exception e) {
+                throw new JasperException(e);
             }
         }
         if (result == null) {
@@ -795,12 +792,12 @@ public class JspRuntimeLibrary {
             PropertyEditor pe = (PropertyEditor) propertyEditorClass.getConstructor().newInstance();
             pe.setAsText(attrValue);
             return pe.getValue();
-        } catch (Exception ex) {
+        } catch (Exception e) {
             if (attrValue.isEmpty()) {
                 return null;
             } else {
                 throw new JasperException(Localizer.getMessage("jsp.error.beans.property.conversion", attrValue,
-                        attrClass.getName(), attrName, ex.getMessage()));
+                        attrClass.getName(), attrName, e.getMessage()));
             }
         }
     }
@@ -963,9 +960,9 @@ public class JspRuntimeLibrary {
      * This method parallels the logic of {@code SetSupport.doEndTag()}.
      *
      * @param pageContext pageContext
-     * @param var name of the variable
-     * @param value value to store
-     * @param scope scope
+     * @param var         name of the variable
+     * @param value       value to store
+     * @param scope       scope
      */
     public static void nonstandardSetTag(jakarta.servlet.jsp.PageContext pageContext, String var, Object value,
             int scope) {

@@ -147,8 +147,14 @@ class StreamProcessor extends AbstractProcessor implements NonPipeliningProcesso
                     state = SocketState.CLOSED;
                 } finally {
                     if (state == SocketState.CLOSED) {
-                        stream.recycle();
+                        /*
+                         * Recycle this processor before the stream is recycled as recycling the stream will add the
+                         * request and the response to the pool for re-use (if re-use is enabled) and the request
+                         * statistics updating in StreamProcessor.recycle() needs to happen before the request and
+                         * response are added to the pool to avoid concurrency issues corrupting the statistics.
+                         */
                         recycle();
+                        stream.recycle();
                     }
                 }
             } finally {
@@ -308,7 +314,7 @@ class StreamProcessor extends AbstractProcessor implements NonPipeliningProcesso
         stream.getInputBuffer().insertReplayedBody(body);
         try {
             stream.receivedEndOfStream();
-        } catch (ConnectionException e) {
+        } catch (ConnectionException ignore) {
             // Exception will not be thrown in this case
         }
     }
@@ -416,6 +422,12 @@ class StreamProcessor extends AbstractProcessor implements NonPipeliningProcesso
             global.removeRequestProcessor(request.getRequestProcessor());
         }
 
+        /*
+         * Clear the statistics ready for re-use of the request. If we don't clear the statistics, the statistics for
+         * the current request will be included in the statistics for all future requests.
+         */
+        request.getRequestProcessor().recycleStatistcs();
+
         // Clear fields that can be cleared to aid GC and trigger NPEs if this
         // is reused
         setSocketWrapper(null);
@@ -493,8 +505,7 @@ class StreamProcessor extends AbstractProcessor implements NonPipeliningProcesso
         HttpParser httpParser = handler.getProtocol().getHttp11Protocol().getHttpParser();
 
         // Method name must be a token
-        String method = request.method().toString();
-        if (!HttpParser.isToken(method)) {
+        if (!HttpParser.isToken(request.getMethod())) {
             return false;
         }
 

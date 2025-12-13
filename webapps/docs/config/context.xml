@@ -23,7 +23,6 @@
   &project;
 
   <properties>
-    <author email="craigmcc@apache.org">Craig R. McClanahan</author>
     <title>The Context Container</title>
   </properties>
 
@@ -668,9 +667,10 @@
         client connection. This setting is used in the following situations:
         </p>
         <ul>
-        <li>the size of the request body is larger than the
-            <code>maxPostSize</code> configured in the connector</li>
-        <li>the size limit of a MultiPart upload is reached</li>
+        <li>Tomcat is automatically processing the request body for parameters
+            and size of the request body data converted to parameters is larger
+            than the <code>maxPostSize</code> configured in the connector</li>
+        <li>a size limit of a MultiPart upload is reached</li>
         <li>the servlet sets the response status to 413 (Request Entity Too
             Large) </li>
         </ul>
@@ -1267,8 +1267,8 @@
   ...
   <Valve className="org.apache.catalina.valves.RemoteHostValve"
          allow=".*\.mycompany\.com|www\.yourcompany\.com"/>
-  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
-         deny="192\.168\.1\.\d+"/>
+  <Valve className="org.apache.catalina.valves.RemoteCIDRValve"
+         deny="192.168.1.0/24"/>
   ...
 </Context>]]></source>
 

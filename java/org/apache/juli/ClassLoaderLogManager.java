@@ -338,7 +338,7 @@ public class ClassLoaderLogManager extends LogManager {
         for (Handler handler : clLogInfo.handlers.values()) {
             try {
                 handler.close();
-            } catch (Exception e) {
+            } catch (Exception ignore) {
                 // Ignore
             }
         }
@@ -365,7 +365,7 @@ public class ClassLoaderLogManager extends LogManager {
         if (info == null) {
             try {
                 readConfiguration(classLoader);
-            } catch (IOException e) {
+            } catch (IOException ignore) {
                 // Ignore
             }
             info = classLoaderLoggers.get(classLoader);
@@ -407,9 +407,9 @@ public class ClassLoaderLogManager extends LogManager {
             if (configFileStr != null) {
                 try {
                     is = new FileInputStream(replace(configFileStr));
-                } catch (IOException e) {
+                } catch (IOException ioe) {
                     System.err.println("Configuration error");
-                    e.printStackTrace();
+                    ioe.printStackTrace();
                 }
             }
             // Try the default JVM configuration
@@ -417,9 +417,9 @@ public class ClassLoaderLogManager extends LogManager {
                 File defaultFile = new File(new File(System.getProperty("java.home"), "conf"), "logging.properties");
                 try {
                     is = new FileInputStream(defaultFile);
-                } catch (IOException e) {
+                } catch (IOException ioe) {
                     System.err.println("Configuration error");
-                    e.printStackTrace();
+                    ioe.printStackTrace();
                 }
             }
         }
@@ -472,10 +472,10 @@ public class ClassLoaderLogManager extends LogManager {
 
         try (is) {
             info.props.load(is);
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             // Report error
             System.err.println("Configuration error");
-            e.printStackTrace();
+            ioe.printStackTrace();
         }
         // Ignore
 

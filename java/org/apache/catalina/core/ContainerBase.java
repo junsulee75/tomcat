@@ -115,8 +115,6 @@ import org.apache.tomcat.util.threads.InlineExecutorService;
  * </tr>
  * </table>
  * Subclasses that fire additional events should document them in the class comments of the implementation class.
- *
- * @author Craig R. McClanahan
  */
 public abstract class ContainerBase extends LifecycleMBeanBase implements Container {
 
@@ -721,12 +719,12 @@ public abstract class ContainerBase extends LifecycleMBeanBase implements Contai
         for (Future<Void> result : results) {
             try {
                 result.get();
-            } catch (Throwable e) {
-                log.error(sm.getString("containerBase.threadedStartFailed"), e);
+            } catch (Throwable t) {
+                log.error(sm.getString("containerBase.threadedStartFailed"), t);
                 if (multiThrowable == null) {
                     multiThrowable = new MultiThrowable();
                 }
-                multiThrowable.add(e);
+                multiThrowable.add(t);
             }
 
         }

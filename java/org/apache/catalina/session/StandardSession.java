@@ -64,10 +64,6 @@ import org.apache.tomcat.util.res.StringManager;
  * <p>
  * <b>IMPLEMENTATION NOTE</b>: If you add fields to this class, you must make sure that you carry them over in the
  * read/writeObject methods so that this class is properly serialized.
- *
- * @author Craig R. McClanahan
- * @author Sean Legassick
- * @author <a href="mailto:jon@latchkey.com">Jon S. Stevens</a>
  */
 public class StandardSession implements HttpSession, Session, Serializable {
 
@@ -339,6 +335,9 @@ public class StandardSession implements HttpSession, Session, Serializable {
     @Override
     public void tellChangedSessionId(String newId, String oldId, boolean notifySessionListeners,
             boolean notifyContainerListeners) {
+        // Notify interested session event listeners
+        fireSessionEvent(SESSION_CHANGED_ID_EVENT, oldId);
+
         Context context = manager.getContext();
         // notify ContainerListeners
         if (notifyContainerListeners) {

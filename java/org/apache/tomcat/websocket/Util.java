@@ -94,34 +94,34 @@ public class Util {
             case 1002 -> CloseCodes.PROTOCOL_ERROR;
             case 1003 -> CloseCodes.CANNOT_ACCEPT;
             case 1004 ->
-                // Should not be used in a close frame
-                // return CloseCodes.RESERVED;
-                CloseCodes.PROTOCOL_ERROR;
+                    // Should not be used in a close frame
+                    // return CloseCodes.RESERVED;
+                    CloseCodes.PROTOCOL_ERROR;
             case 1005 ->
-                // Should not be used in a close frame
-                // return CloseCodes.NO_STATUS_CODE;
-                CloseCodes.PROTOCOL_ERROR;
+                    // Should not be used in a close frame
+                    // return CloseCodes.NO_STATUS_CODE;
+                    CloseCodes.PROTOCOL_ERROR;
             case 1006 ->
-                // Should not be used in a close frame
-                // return CloseCodes.CLOSED_ABNORMALLY;
-                CloseCodes.PROTOCOL_ERROR;
+                    // Should not be used in a close frame
+                    // return CloseCodes.CLOSED_ABNORMALLY;
+                    CloseCodes.PROTOCOL_ERROR;
             case 1007 -> CloseCodes.NOT_CONSISTENT;
             case 1008 -> CloseCodes.VIOLATED_POLICY;
             case 1009 -> CloseCodes.TOO_BIG;
             case 1010 -> CloseCodes.NO_EXTENSION;
             case 1011 -> CloseCodes.UNEXPECTED_CONDITION;
             case 1012 ->
-                // Not in RFC6455
-                // return CloseCodes.SERVICE_RESTART;
-                CloseCodes.PROTOCOL_ERROR;
+                    // Not in RFC6455
+                    // return CloseCodes.SERVICE_RESTART;
+                    CloseCodes.PROTOCOL_ERROR;
             case 1013 ->
-                // Not in RFC6455
-                // return CloseCodes.TRY_AGAIN_LATER;
-                CloseCodes.PROTOCOL_ERROR;
+                    // Not in RFC6455
+                    // return CloseCodes.TRY_AGAIN_LATER;
+                    CloseCodes.PROTOCOL_ERROR;
             case 1015 ->
-                // Should not be used in a close frame
-                // return CloseCodes.TLS_HANDSHAKE_FAILURE;
-                CloseCodes.PROTOCOL_ERROR;
+                    // Should not be used in a close frame
+                    // return CloseCodes.TLS_HANDSHAKE_FAILURE;
+                    CloseCodes.PROTOCOL_ERROR;
             default -> CloseCodes.PROTOCOL_ERROR;
         };
     }
@@ -211,8 +211,8 @@ public class Util {
             // the interface of interest
             // Map that unknown type to the generic types defined in this class
             ParameterizedType superClassType = (ParameterizedType) clazz.getGenericSuperclass();
-            TypeResult result = getTypeParameter(clazz,
-                    superClassType.getActualTypeArguments()[superClassTypeResult.getIndex()]);
+            TypeResult result =
+                    getTypeParameter(clazz, superClassType.getActualTypeArguments()[superClassTypeResult.getIndex()]);
             result.incrementDimension(superClassTypeResult.getDimension());
             if (result.getClazz() != null && result.getDimension() > 0) {
                 superClassTypeResult = result;
@@ -251,7 +251,7 @@ public class Util {
         return switch (argType) {
             case Class<?> aClass -> new TypeResult(aClass, -1, 0);
             case ParameterizedType parameterizedType ->
-                new TypeResult((Class<?>) parameterizedType.getRawType(), -1, 0);
+                    new TypeResult((Class<?>) parameterizedType.getRawType(), -1, 0);
             case GenericArrayType genericArrayType -> {
                 Type arrayElementType = genericArrayType.getGenericComponentType();
                 TypeResult result = getTypeParameter(clazz, arrayElementType);
@@ -276,8 +276,8 @@ public class Util {
             return true;
         } else {
             return clazz.equals(Boolean.class) || clazz.equals(Byte.class) || clazz.equals(Character.class) ||
-                clazz.equals(Double.class) || clazz.equals(Float.class) || clazz.equals(Integer.class) ||
-                clazz.equals(Long.class) || clazz.equals(Short.class);
+                    clazz.equals(Double.class) || clazz.equals(Float.class) || clazz.equals(Integer.class) ||
+                    clazz.equals(Long.class) || clazz.equals(Short.class);
         }
     }
 
@@ -334,8 +334,8 @@ public class Util {
                         // Don't need this instance, so destroy it
                         instanceManager.destroyInstance(instance);
                     }
-                } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException
-                        | NamingException e) {
+                } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException |
+                        NamingException e) {
                     throw new DeploymentException(
                             sm.getString("pojoMethodMapping.invalidDecoder", decoderClazz.getName()), e);
                 }
@@ -369,13 +369,16 @@ public class Util {
             // the types expected by the frame handling code
         } else if (byte[].class.isAssignableFrom(target)) {
             boolean whole = MessageHandler.Whole.class.isAssignableFrom(listener.getClass());
-            MessageHandlerResult result = new MessageHandlerResult(whole
-                    ? new PojoMessageHandlerWholeBinary(listener, getOnMessageMethod(listener), session, endpointConfig,
-                            matchDecoders(target, endpointConfig, true, ((WsSession) session).getInstanceManager()),
-                            new Object[1], 0, true, -1, false, -1)
-                    : new PojoMessageHandlerPartialBinary(listener, getOnMessagePartialMethod(listener), session,
-                            new Object[2], 0, true, 1, -1, -1),
-                    MessageHandlerResultType.BINARY);
+            MessageHandlerResult result =
+                    new MessageHandlerResult(whole ?
+                            new PojoMessageHandlerWholeBinary(listener, getOnMessageMethod(listener), session,
+                                    endpointConfig,
+                                    matchDecoders(target, endpointConfig, true,
+                                            ((WsSession) session).getInstanceManager()),
+                                    new Object[1], 0, true, -1, false, -1) :
+                            new PojoMessageHandlerPartialBinary(listener, getOnMessagePartialMethod(listener), session,
+                                    new Object[2], 0, true, 1, -1, -1),
+                            MessageHandlerResultType.BINARY);
             results.add(result);
         } else if (InputStream.class.isAssignableFrom(target)) {
             MessageHandlerResult result = new MessageHandlerResult(
@@ -394,8 +397,8 @@ public class Util {
         } else {
             // Handler needs wrapping and requires decoder to convert it to one
             // of the types expected by the frame handling code
-            DecoderMatch decoderMatch = matchDecoders(target, endpointConfig,
-                    ((WsSession) session).getInstanceManager());
+            DecoderMatch decoderMatch =
+                    matchDecoders(target, endpointConfig, ((WsSession) session).getInstanceManager());
             Method m = getOnMessageMethod(listener);
             if (!decoderMatch.getBinaryDecoders().isEmpty()) {
                 MessageHandlerResult result = new MessageHandlerResult(

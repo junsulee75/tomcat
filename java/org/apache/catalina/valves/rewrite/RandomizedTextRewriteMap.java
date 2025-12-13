@@ -50,8 +50,11 @@ public class RandomizedTextRewriteMap implements RewriteMap {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(txtResource.getInputStream()))) {
             while ((line = reader.readLine()) != null) {
                 if (line.startsWith("#") || line.isEmpty()) {
-                    // Ignore comment or empty lines
+                    // Ignore comment line or empty lines
                     continue;
+                } else if (line.indexOf('#') > 0) {
+                    // Ignore comment characters after '#'
+                    line = line.substring(0, line.indexOf('#')).trim();
                 }
                 String[] keyValuePair = line.split(" ", 2);
                 if (keyValuePair.length > 1) {
@@ -69,8 +72,8 @@ public class RandomizedTextRewriteMap implements RewriteMap {
                     throw new IllegalArgumentException(sm.getString("rewriteMap.txtInvalidLine", line, txtFilePath));
                 }
             }
-        } catch (IOException e) {
-            throw new IllegalArgumentException(sm.getString("rewriteMap.txtReadError", txtFilePath), e);
+        } catch (IOException ioe) {
+            throw new IllegalArgumentException(sm.getString("rewriteMap.txtReadError", txtFilePath), ioe);
         }
     }
 

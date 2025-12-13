@@ -38,14 +38,12 @@ import org.apache.catalina.connector.Connector;
 import org.apache.catalina.connector.Request;
 import org.apache.tomcat.util.buf.B2CConverter;
 import org.apache.tomcat.util.buf.UDecoder;
+import org.apache.tomcat.util.http.Method;
 import org.apache.tomcat.util.http.RequestUtil;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
  * An implementation of SSIExternalResolver that is used with servlets.
- *
- * @author Dan Sandberg
- * @author David Becker
  */
 public class SSIServletExternalResolver implements SSIExternalResolver {
     private static final StringManager sm = StringManager.getManager(SSIServletExternalResolver.class);
@@ -301,8 +299,8 @@ public class SSIServletExternalResolver implements SSIExternalResolver {
             } else if (nameParts[1].equals("PROTOCOL")) {
                 retVal = req.getProtocol();
             } else if (nameParts[1].equals("SOFTWARE")) {
-                retVal = context.getServerInfo() + ' ' + System.getProperty("java.vm.name") +
-                        '/' + System.getProperty("java.vm.version") + ' ' + System.getProperty("os.name");
+                retVal = context.getServerInfo() + ' ' + System.getProperty("java.vm.name") + '/' +
+                        System.getProperty("java.vm.version") + ' ' + System.getProperty("os.name");
             }
         } else if (name.equalsIgnoreCase("UNIQUE_ID")) {
             retVal = req.getRequestedSessionId();
@@ -440,7 +438,7 @@ public class SSIServletExternalResolver implements SSIExternalResolver {
         try {
             URLConnection urlConnection = getURLConnection(path, virtual);
             lastModified = urlConnection.getLastModified();
-        } catch (IOException e) {
+        } catch (IOException ignore) {
             // Ignore this. It will always fail for non-file based includes
         }
         return lastModified;
@@ -453,7 +451,7 @@ public class SSIServletExternalResolver implements SSIExternalResolver {
         try {
             URLConnection urlConnection = getURLConnection(path, virtual);
             fileSize = urlConnection.getContentLengthLong();
-        } catch (IOException e) {
+        } catch (IOException ignore) {
             // Ignore this. It will always fail for non-file based includes
         }
         return fileSize;
@@ -493,7 +491,7 @@ public class SSIServletExternalResolver implements SSIExternalResolver {
              * Make an assumption that an empty response is a failure. This is a problem if a truly empty file were
              * included, but not sure how else to tell.
              */
-            if (retVal.isEmpty() && !req.getMethod().equalsIgnoreCase("HEAD")) {
+            if (retVal.isEmpty() && !Method.HEAD.equals(req.getMethod())) {
                 throw new IOException(sm.getString("ssiServletExternalResolver.noFile", path));
             }
             return retVal;

@@ -42,10 +42,7 @@ import org.apache.tomcat.util.descriptor.tld.TldResourcePath;
 
 /**
  * 1. Processes and extracts the directive info in a tag file. 2. Compiles and loads tag files used in a JSP file.
- *
- * @author Kin-man Chung
  */
-
 public class TagFileProcessor {
 
     private List<Compiler> tempVector;
@@ -441,7 +438,7 @@ public class TagFileProcessor {
         Node.Nodes page = null;
         try {
             page = pc.parseTagFileDirectives(path, jar);
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             err.jspError("jsp.error.file.not.found", path);
         }
 

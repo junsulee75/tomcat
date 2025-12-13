@@ -50,11 +50,6 @@ import org.xml.sax.Attributes;
 /**
  * Performs validation on the page elements. Attributes are checked for mandatory presence, entry value validity, and
  * consistency. As a side effect, some page global value (such as those from page directives) are stored, for later use.
- *
- * @author Kin-man Chung
- * @author Jan Luehe
- * @author Shawn Bayern
- * @author Mark Roth
  */
 class Validator {
 
@@ -962,7 +957,7 @@ class Validator {
                 }
                 for (int j = 0; tldAttrs != null && j < tldAttrs.length; j++) {
                     if (attrs.getLocalName(i).equals(tldAttrs[j].getName()) && (attrs.getURI(i) == null ||
-                        attrs.getURI(i).isEmpty() || attrs.getURI(i).equals(n.getURI()))) {
+                            attrs.getURI(i).isEmpty() || attrs.getURI(i).equals(n.getURI()))) {
 
                         TagAttributeInfo tldAttr = tldAttrs[j];
                         if (tldAttr.canBeRequestTime() || tldAttr.isDeferredMethod() || tldAttr.isDeferredValue()) { // JSP

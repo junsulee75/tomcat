@@ -45,6 +45,7 @@ import org.apache.catalina.startup.Tomcat;
 import org.apache.catalina.startup.TomcatBaseTest;
 import org.apache.catalina.valves.ValveBase;
 import org.apache.tomcat.util.buf.ByteChunk;
+import org.apache.tomcat.util.http.Method;
 
 /*
  * Implementation note:
@@ -301,17 +302,112 @@ public class TestRewriteValve extends TomcatBaseTest {
     }
 
     @Test
-    public void testQueryString() throws Exception {
+    public void testQueryStringTargetOnly() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?je=2", "/b/id=1", "/c/id=1", "je=2");
+    }
+
+    @Test
+    public void testQueryStringTargetOnlyQSA() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?je=2 [QSA]", "/b/id=1", "/c/id=1", "je=2");
+    }
+
+    @Test
+    public void testQueryStringTargetOnlyQSD() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?je=2 [QSD]", "/b/id=1", "/c/id=1", "je=2");
+    }
+
+    @Test
+    public void testQueryStringTargetOnlyQSAQSD() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?je=2 [QSA,QSD]", "/b/id=1", "/c/id=1", "je=2");
+    }
+
+    @Test
+    public void testQueryStringTargetOnlyQS() throws Exception {
         doTestRewrite("RewriteRule ^/b/(.*) /c?$1", "/b/id=1", "/c", "id=1");
     }
 
     @Test
+    public void testQueryStringTargetOnlyQSAQS() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c?$1 [QSA]", "/b/id=1", "/c", "id=1");
+    }
+
+    @Test
+    public void testQueryStringTargetOnlyQSDQS() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c?$1 [QSD]", "/b/id=1", "/c", "id=1");
+    }
+
+    @Test
+    public void testQueryStringTargetOnlyQSAQSDQS() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c?$1 [QSA,QSD]", "/b/id=1", "/c", "id=1");
+    }
+
+    @Test
+    public void testQueryStringSourceOnly() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1", "/b/d?id=1", "/c/d", "id=1");
+    }
+
+    @Test
+    public void testQueryStringSourceOnlyQSA() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1 [QSA]", "/b/d?id=1", "/c/d", "id=1");
+    }
+
+    @Test
+    public void testQueryStringSourceOnlyQSD() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1 [QSD]", "/b/d?id=1", "/c/d", null);
+    }
+
+    @Test
+    public void testQueryStringSourceOnlyQSAQSD() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1 [QSA,QSD]", "/b/d?id=1", "/c/d", null);
+    }
+
+    @Test
+    public void testQueryStringSourceAndTarget() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?id=1", "/b/d?je=2", "/c/d", "id=1");
+    }
+
+    @Test
+    public void testQueryStringSourceAndTargetQSA() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?id=1 [QSA]", "/b/d?je=2", "/c/d", "id=1&je=2");
+    }
+
+    @Test
+    public void testQueryStringSourceAndTargetQSD() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?id=1 [QSD]", "/b/d?je=2", "/c/d", "id=1");
+    }
+
+    @Test
+    public void testQueryStringSourceAndTargetQSAQSD() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?id=1 [QSA,QSD]", "/b/d?je=2", "/c/d", "id=1");
+    }
+
+    @Test
+    public void testQueryStringEncoded01() throws Exception {
+        doTestRewrite("RewriteCond %{QUERY_STRING} a=(.*)\nRewriteRule ^/b.*$ /%1 [QSD]", "/b?a=c", "/c", null);
+    }
+
+    @Test
+    public void testQueryStringEncoded02() throws Exception {
+        doTestRewrite("RewriteCond %{QUERY_STRING} a=(.*)\nRewriteRule ^/b.*$ /z/%1 [QSD]", "/b?a=%2e%2e%2fc%2faAbB", "/z/%2e%2e%2fc%2faAbB", null);
+    }
+
+    @Test
     public void testQueryStringRemove() throws Exception {
-        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?", "/b/d?=1", "/c/d", null);
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?", "/b/d?id=1", "/c/d", null);
     }
 
     @Test
     public void testQueryStringRemove02() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1 [QSD]", "/b/d?id=1", "/c/d", null);
+    }
+
+    @Test
+    public void testQueryStringRemoveInvalid() throws Exception {
+        doTestRewrite("RewriteRule ^/b/(.*) /c/$1?", "/b/d?=1", "/c/d", null);
+    }
+
+    @Test
+    public void testQueryStringRemoveInvalid02() throws Exception {
         doTestRewrite("RewriteRule ^/b/(.*) /c/$1 [QSD]", "/b/d?=1", "/c/d", null);
     }
 
@@ -616,7 +712,7 @@ public class TestRewriteValve extends TomcatBaseTest {
     public void testFlagsNC() throws Exception {
         // https://bz.apache.org/bugzilla/show_bug.cgi?id=60116
         doTestRewrite("RewriteCond %{QUERY_STRING} a=([a-z]*) [NC]\n" + "RewriteRule .* - [E=X-Test:%1]", "/c?a=aAa",
-                "/c", null, "aAa");
+                "/c", "a=aAa", "aAa");
     }
 
     @Test
@@ -630,7 +726,7 @@ public class TestRewriteValve extends TomcatBaseTest {
             Map<String, List<String>> reqHead = new HashMap<>();
             reqHead.put("\"\"", Arrays.asList(new String[]{"Test"}));
             doTestRewriteEx("RewriteCond %{HTTP:} .+\nRewriteRule .* - [F]", "",
-                null, null, null, false, resHead, reqHead);
+                    null, null, null, false, resHead, reqHead);
         } finally {
             HttpURLConnection.setFollowRedirects(originalValue);
         }
@@ -796,9 +892,9 @@ public class TestRewriteValve extends TomcatBaseTest {
 
         ByteChunk res = new ByteChunk();
         int rc = methodUrl("http://localhost:" + getPort() + request, res, DEFAULT_CLIENT_TIMEOUT_MS,
-            reqHead,
-            resHead,
-            "GET", true);
+                reqHead,
+                resHead,
+                Method.GET, true);
         res.setCharset(StandardCharsets.UTF_8);
 
         if (expectedURI == null) {
@@ -806,12 +902,16 @@ public class TestRewriteValve extends TomcatBaseTest {
             // were written into the request target
             Assert.assertEquals(400, rc);
         } else {
+            // If there is an expected URI, the request should be successful
+            Assert.assertEquals(200, rc);
             String body = res.toString();
             RequestDescriptor requestDesc = SnoopResult.parse(body);
             String requestURI = requestDesc.getRequestInfo("REQUEST-URI");
             Assert.assertEquals(expectedURI, requestURI);
 
-            if (expectedQueryString != null) {
+            if (expectedQueryString == null) {
+                Assert.assertTrue(requestDesc.getParams().isEmpty());
+            } else {
                 String queryString = requestDesc.getRequestInfo("REQUEST-QUERY-STRING");
                 Assert.assertEquals(expectedQueryString, queryString);
             }
@@ -845,7 +945,7 @@ public class TestRewriteValve extends TomcatBaseTest {
         ByteChunk res = new ByteChunk();
         Map<String, List<String>> resHead = new HashMap<>();
         int rc = methodUrl("http://localhost:" + getPort() + request, res, DEFAULT_CLIENT_TIMEOUT_MS, null, resHead,
-                "GET", false);
+                Method.GET, false);
         res.setCharset(StandardCharsets.UTF_8);
 
         if (expectedURI == null) {
@@ -887,7 +987,7 @@ public class TestRewriteValve extends TomcatBaseTest {
         reqHead.put("cookie", Arrays.asList("test=data"));
         ByteChunk res = new ByteChunk();
         int rc = methodUrl("http://localhost:" + getPort() + "/source/cookieTest", res, DEFAULT_CLIENT_TIMEOUT_MS,
-                reqHead, null, "GET", false);
+                reqHead, null, Method.GET, false);
 
         Assert.assertEquals(HttpServletResponse.SC_OK, rc);
 

@@ -30,11 +30,8 @@ import jakarta.el.MethodNotFoundException;
 import org.apache.el.lang.ELSupport;
 import org.apache.el.lang.EvaluationContext;
 
-
 /**
- * Utilities for Managing Serialization and Reflection
- *
- * @author Jacob Hookom [jacob@hookom.net]
+ * Utilities for Managing Serialization and Reflection.
  */
 public class ReflectionUtil {
 
@@ -153,12 +150,20 @@ public class ReflectionUtil {
 
         // Fast path: when no arguments exist, there can only be one matching method and no need for coercion.
         if (paramCount == 0) {
+            Method result = null;
+            Throwable t = null;
             try {
                 Method method = clazz.getMethod(methodName, paramTypes);
-                return getMethod(clazz, base, method);
+                result = getMethod(clazz, base, method);
             } catch (NoSuchMethodException | SecurityException e) {
-                // Fall through to broader, slower logic
+                // Fall through
+                t = e;
             }
+            if (result == null) {
+                throw new MethodNotFoundException(
+                        MessageFactory.get("error.method.notfound", base, property, paramString(paramTypes)), t);
+            }
+            return result;
         }
 
         Method[] methods = clazz.getMethods();
@@ -494,9 +499,8 @@ public class ReflectionUtil {
     /*
      * This class duplicates code in jakarta.el.Util. When making changes keep the code in sync.
      */
-    private record MatchResult(boolean varArgs, int exactCount, int assignableCount,
-                               int coercibleCount, int varArgsCount,
-                               boolean bridge) implements Comparable<MatchResult> {
+    private record MatchResult(boolean varArgs, int exactCount, int assignableCount, int coercibleCount,
+            int varArgsCount, boolean bridge) implements Comparable<MatchResult> {
 
         @Override
         public int compareTo(MatchResult o) {
@@ -532,8 +536,7 @@ public class ReflectionUtil {
                     ((MatchResult) o).assignableCount() == this.assignableCount() &&
                     ((MatchResult) o).coercibleCount() == this.coercibleCount() &&
                     ((MatchResult) o).varArgsCount() == this.varArgsCount() &&
-                    ((MatchResult) o).varArgs() == this.varArgs() &&
-                    ((MatchResult) o).bridge() == this.bridge());
+                    ((MatchResult) o).varArgs() == this.varArgs() && ((MatchResult) o).bridge() == this.bridge());
         }
 
         @Override

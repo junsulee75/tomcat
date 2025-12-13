@@ -40,8 +40,6 @@ import org.apache.tomcat.util.ExceptionUtils;
  * available through the JNDI resources configured for this instance of Catalina. Set the <code>resourceName</code>
  * parameter to the JNDI resources name for the configured instance of <code>UserDatabase</code> that we should consult.
  *
- * @author Craig R. McClanahan
- *
  * @since 4.1
  */
 public class UserDatabaseRealm extends RealmBase {
@@ -113,8 +111,7 @@ public class UserDatabaseRealm extends RealmBase {
      * Determines whether this Realm is configured to obtain the associated {@link UserDatabase} from the global JNDI
      * context or a local (web application) JNDI context.
      *
-     * @return {@code true} if a local JNDI context will be used, {@code false} if the global JNDI context will be
-     *             used
+     * @return {@code true} if a local JNDI context will be used, {@code false} if the global JNDI context will be used
      */
     public boolean getLocalJndiResource() {
         return localJndiResource;
@@ -221,13 +218,13 @@ public class UserDatabaseRealm extends RealmBase {
                                 containerLog.error(sm.getString("userDatabaseRealm.noNamingContext"));
                                 return null;
                             }
-                            context = getServer().getGlobalNamingContext();
+                            context = server.getGlobalNamingContext();
                         }
                         database = (UserDatabase) context.lookup(resourceName);
-                    } catch (Throwable e) {
-                        ExceptionUtils.handleThrowable(e);
+                    } catch (Throwable t) {
+                        ExceptionUtils.handleThrowable(t);
                         if (containerLog != null) {
-                            containerLog.error(sm.getString("userDatabaseRealm.lookup", resourceName), e);
+                            containerLog.error(sm.getString("userDatabaseRealm.lookup", resourceName), t);
                         }
                         database = null;
                     }

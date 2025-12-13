@@ -48,8 +48,6 @@ import org.apache.tomcat.util.res.StringManager;
 /**
  * Implementation of a <code>jakarta.servlet.FilterConfig</code> useful in managing the filter instances instantiated
  * when a web application is first started.
- *
- * @author Craig R. McClanahan
  */
 public final class ApplicationFilterConfig implements FilterConfig, Serializable {
 
@@ -178,11 +176,8 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
 
     @Override
     public String toString() {
-        return "ApplicationFilterConfig[" + "name=" +
-            filterDef.getFilterName() +
-            ", filterClass=" +
-            filterDef.getFilterClass() +
-            ']';
+        return "ApplicationFilterConfig[" + "name=" + filterDef.getFilterName() + ", filterClass=" +
+                filterDef.getFilterClass() + ']';
     }
 
     // --------------------------------------------------------- Public Methods
@@ -312,8 +307,8 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
         try {
             oname = new ObjectName(onameStr);
             Registry.getRegistry(null).registerComponent(this, oname, null);
-        } catch (Exception ex) {
-            log.warn(sm.getString("applicationFilterConfig.jmxRegisterFail", getFilterClass(), getFilterName()), ex);
+        } catch (Exception e) {
+            log.warn(sm.getString("applicationFilterConfig.jmxRegisterFail", getFilterClass(), getFilterName()), e);
         }
     }
 
@@ -326,9 +321,9 @@ public final class ApplicationFilterConfig implements FilterConfig, Serializable
                 if (log.isDebugEnabled()) {
                     log.debug(sm.getString("applicationFilterConfig.jmxUnregister", getFilterClass(), getFilterName()));
                 }
-            } catch (Exception ex) {
+            } catch (Exception e) {
                 log.warn(sm.getString("applicationFilterConfig.jmxUnregisterFail", getFilterClass(), getFilterName()),
-                        ex);
+                        e);
             }
         }
     }

@@ -29,8 +29,6 @@ import org.apache.tomcat.util.res.StringManager;
 /**
  * All URL decoding happens here. This way we can reuse, review, optimize without adding complexity to the buffers. The
  * conversion will modify the original buffer.
- *
- * @author Costin Manolache
  */
 public final class UDecoder {
 
@@ -85,10 +83,8 @@ public final class UDecoder {
      * URLDecode, will modify the source. Assumes source bytes are encoded using a superset of US-ASCII as per RFC 7230.
      *
      * @param mb                            The URL encoded bytes
-     * @param encodedSolidusHandling        How should the %2f sequence handled by the decoder? For query strings this
-     *                                          parameter will be ignored and the %2f sequence will be decoded
-     * @param encodedReverseSolidusHandling How should the %5c sequence handled by the decoder? For query strings this
-     *                                          parameter will be ignored and the %5c sequence will be decoded
+     * @param encodedSolidusHandling        How should the %2f sequence handled by the decoder?
+     * @param encodedReverseSolidusHandling How should the %5c sequence handled by the decoder?
      *
      * @throws IOException Invalid %xx URL encoding
      */

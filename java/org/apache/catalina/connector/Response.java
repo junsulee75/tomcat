@@ -62,9 +62,6 @@ import org.apache.tomcat.util.security.Escape;
 
 /**
  * Wrapper object for the Coyote response.
- *
- * @author Remy Maucherat
- * @author Craig R. McClanahan
  */
 public class Response implements HttpServletResponse {
 
@@ -1357,8 +1354,8 @@ public class Response implements HttpServletResponse {
                 redirectURLCC.append(':');
                 redirectURLCC.append(location, 0, location.length());
                 return redirectURLCC.toString();
-            } catch (IOException e) {
-                throw new IllegalArgumentException(location, e);
+            } catch (IOException ioe) {
+                throw new IllegalArgumentException(location, ioe);
             }
 
         } else if (leadingSlash || !UriUtil.hasScheme(location)) {
@@ -1389,8 +1386,8 @@ public class Response implements HttpServletResponse {
                 redirectURLCC.append(location, 0, location.length());
 
                 normalize(redirectURLCC);
-            } catch (IOException e) {
-                throw new IllegalArgumentException(location, e);
+            } catch (IOException ioe) {
+                throw new IllegalArgumentException(location, ioe);
             }
 
             return redirectURLCC.toString();
@@ -1424,8 +1421,8 @@ public class Response implements HttpServletResponse {
         if (cc.endsWith("/.") || cc.endsWith("/..")) {
             try {
                 cc.append('/');
-            } catch (IOException e) {
-                throw new IllegalArgumentException(cc.toString(), e);
+            } catch (IOException ioe) {
+                throw new IllegalArgumentException(cc.toString(), ioe);
             }
         }
 

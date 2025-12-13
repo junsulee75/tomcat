@@ -42,13 +42,7 @@ import org.xml.sax.Attributes;
 /**
  * An internal data representation of a JSP page or a JSP document (XML). Also included here is a visitor class for
  * traversing nodes.
- *
- * @author Kin-man Chung
- * @author Jan Luehe
- * @author Shawn Bayern
- * @author Mark Roth
  */
-
 public abstract class Node implements TagConstants {
 
     private static final VariableInfo[] ZERO_VARIABLE_INFO = {};
@@ -346,8 +340,8 @@ public abstract class Node implements TagConstants {
     }
 
     /**
-     * Selects and invokes a method in the visitor class based on the node type. This is abstract and should be overridden
-     * by the extending classes.
+     * Selects and invokes a method in the visitor class based on the node type. This is abstract and should be
+     * overridden by the extending classes.
      *
      * @param v The visitor class
      */
@@ -1507,7 +1501,7 @@ public abstract class Node implements TagConstants {
                 case VariableInfo.AT_END -> this.atEndScriptingVars;
                 case VariableInfo.NESTED -> this.nestedScriptingVars;
                 default -> throw new IllegalArgumentException(
-                    Localizer.getMessage("jsp.error.page.invalid.varscope", Integer.valueOf(scope)));
+                        Localizer.getMessage("jsp.error.page.invalid.varscope", Integer.valueOf(scope)));
             };
         }
 

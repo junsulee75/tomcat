@@ -31,8 +31,6 @@ import org.apache.jasper.Constants;
 
 /**
  * Implementation of JspFactory.
- *
- * @author Anil K. Vijendran
  */
 public class JspFactoryImpl extends JspFactory {
 
@@ -60,7 +58,7 @@ public class JspFactoryImpl extends JspFactory {
 
         try {
             pc.initialize(servlet, request, response, errorPageURL, needsSession, bufferSize, autoflush);
-        } catch (IOException ioe) {
+        } catch (IOException ignore) {
             // Implementation never throws IOE but can't change the signature
             // since it is part of the JSP API
         }

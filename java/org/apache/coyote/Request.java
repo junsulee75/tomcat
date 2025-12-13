@@ -18,6 +18,7 @@ package org.apache.coyote;
 
 import java.io.IOException;
 import java.io.StringReader;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -32,6 +33,7 @@ import jakarta.servlet.ServletConnection;
 import org.apache.tomcat.util.buf.CharsetHolder;
 import org.apache.tomcat.util.buf.MessageBytes;
 import org.apache.tomcat.util.buf.UDecoder;
+import org.apache.tomcat.util.http.Method;
 import org.apache.tomcat.util.http.MimeHeaders;
 import org.apache.tomcat.util.http.Parameters;
 import org.apache.tomcat.util.http.ServerCookies;
@@ -48,15 +50,6 @@ import org.apache.tomcat.util.res.StringManager;
  * <ul>
  * <li>"org.apache.tomcat.request" - allows access to the low-level request object in trusted applications
  * </ul>
- *
- * @author James Duncan Davidson [duncan@eng.sun.com]
- * @author James Todd [gonzo@eng.sun.com]
- * @author Jason Hunter [jch@eng.sun.com]
- * @author Harish Prabandham
- * @author Alex Cruikshank [alex@epitonic.com]
- * @author Hans Bergsten [hans@gefionsoftware.com]
- * @author Costin Manolache
- * @author Remy Maucherat
  */
 public final class Request {
 
@@ -70,8 +63,8 @@ public final class Request {
      * another 3,000,000 years before it gets back to zero).
      *
      * Local testing shows that 5, 10, 50, 500 or 1000 threads can obtain 60,000,000+ IDs a second from a single
-     * AtomicLong. That is about 17ns per request. It does not appear that the introduction of this counter will
-     * cause a bottleneck for request processing.
+     * AtomicLong. That is about 17ns per request. It does not appear that the introduction of this counter will cause a
+     * bottleneck for request processing.
      */
     private static final AtomicLong requestIdGenerator = new AtomicLong(0);
 
@@ -93,7 +86,7 @@ public final class Request {
 
     private final MessageBytes schemeMB = MessageBytes.newInstance();
 
-    private final MessageBytes methodMB = MessageBytes.newInstance();
+    private String method;
     private final MessageBytes uriMB = MessageBytes.newInstance();
     private final MessageBytes decodedUriMB = MessageBytes.newInstance();
     private final MessageBytes queryMB = MessageBytes.newInstance();
@@ -139,7 +132,7 @@ public final class Request {
      */
     private long contentLength = -1;
     private MessageBytes contentTypeMB = null;
-    private CharsetHolder charsetHolder = CharsetHolder.EMPTY;
+    private CharsetHolder charsetHolder = null;
 
     /**
      * Is there an expectation ?
@@ -160,6 +153,7 @@ public final class Request {
     private long bytesRead = 0;
     // Time of the request - useful to avoid repeated calls to System.currentTime
     private long startTimeNanos = -1;
+    private Instant startInstant = null;
     private long threadId = 0;
     private int available = 0;
 
@@ -312,8 +306,16 @@ public final class Request {
         return schemeMB;
     }
 
-    public MessageBytes method() {
-        return methodMB;
+    public void setMethod(String method) {
+        this.method = method;
+    }
+
+    public void setMethod(byte[] buf, int start, int len) {
+        this.method = Method.bytesToString(buf, start, len);
+    }
+
+    public String getMethod() {
+        return method;
     }
 
     public MessageBytes requestURI() {
@@ -389,7 +391,7 @@ public final class Request {
     // -------------------- encoding/type --------------------
 
     public CharsetHolder getCharsetHolder() {
-        if (charsetHolder.getName() == null) {
+        if (charsetHolder == null) {
             charsetHolder = CharsetHolder.getInstance(getCharsetFromContentType(getContentType()));
         }
         return charsetHolder;
@@ -397,7 +399,11 @@ public final class Request {
 
 
     public void setCharsetHolder(CharsetHolder charsetHolder) {
-        this.charsetHolder = charsetHolder;
+        if (charsetHolder == null || charsetHolder.getName() == null) {
+            this.charsetHolder = null;
+        } else {
+            this.charsetHolder = charsetHolder;
+        }
     }
 
 
@@ -669,8 +675,13 @@ public final class Request {
         return startTimeNanos;
     }
 
-    public void setStartTimeNanos(long startTimeNanos) {
-        this.startTimeNanos = startTimeNanos;
+    public void markStartTime() {
+        startTimeNanos = System.nanoTime();
+        startInstant = Instant.now();
+    }
+
+    public Instant getStartInstant() {
+        return startInstant;
     }
 
     public long getThreadId() {
@@ -724,7 +735,7 @@ public final class Request {
 
         contentLength = -1;
         contentTypeMB = null;
-        charsetHolder = CharsetHolder.EMPTY;
+        charsetHolder = null;
         expectation = false;
         headers.recycle();
         trailerFields.recycle();
@@ -761,7 +772,7 @@ public final class Request {
         uriMB.recycle();
         decodedUriMB.recycle();
         queryMB.recycle();
-        methodMB.recycle();
+        method = null;
         protoMB.recycle();
 
         schemeMB.recycle();
@@ -781,6 +792,7 @@ public final class Request {
         allDataReadEventSent.set(false);
 
         startTimeNanos = -1;
+        startInstant = null;
         threadId = 0;
 
         if (hook instanceof NonPipeliningProcessor) {
@@ -825,7 +837,7 @@ public final class Request {
         MediaType mediaType = null;
         try {
             mediaType = MediaType.parseMediaType(new StringReader(contentType));
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             // Ignore - null test below handles this
         }
         if (mediaType != null) {

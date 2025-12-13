@@ -33,14 +33,12 @@ import org.apache.coyote.CloseNowException;
 import org.apache.coyote.Response;
 import org.apache.tomcat.util.buf.C2BConverter;
 import org.apache.tomcat.util.buf.CharsetHolder;
+import org.apache.tomcat.util.http.Method;
 import org.apache.tomcat.util.res.StringManager;
 
 /**
  * The buffer used by Tomcat response. This is a derivative of the Tomcat 3.3 OutputBuffer, with the removal of some of
  * the state handling (which in Coyote is mostly the Processor's responsibility).
- *
- * @author Costin Manolache
- * @author Remy Maucherat
  */
 public class OutputBuffer extends Writer {
 
@@ -226,8 +224,8 @@ public class OutputBuffer extends Writer {
         // - the content length has not been explicitly set
         // AND
         // - some content has been written OR this is NOT a HEAD request
-        if ((!coyoteResponse.isCommitted()) && (coyoteResponse.getContentLengthLong() == -1) &&
-                ((bb.remaining() > 0 || !coyoteResponse.getRequest().method().equals("HEAD")))) {
+        if (!coyoteResponse.isCommitted() && coyoteResponse.getContentLengthLong() == -1 &&
+                (bb.remaining() > 0 || !Method.HEAD.equals(coyoteResponse.getRequest().getMethod()))) {
             coyoteResponse.setContentLength(bb.remaining());
         }
 
@@ -323,11 +321,11 @@ public class OutputBuffer extends Writer {
                 // Prevent further output for this response
                 closed = true;
                 throw e;
-            } catch (IOException e) {
+            } catch (IOException ioe) {
                 // An IOException on a write is almost always due to
                 // the remote client aborting the request. Wrap this
                 // so that it can be handled better by the error dispatcher.
-                throw new ClientAbortException(e);
+                throw new ClientAbortException(ioe);
             }
         }
 
@@ -419,8 +417,8 @@ public class OutputBuffer extends Writer {
         /*
          * Handle the requirements of section 5.7 of the Servlet specification - Closure of the Response Object.
          *
-         * Currently, this just handles the simple case. There is work in progress to better define what should happen if
-         * an attempt is made to write > content-length bytes. When that work is complete, this is likely where the
+         * Currently, this just handles the simple case. There is work in progress to better define what should happen
+         * if an attempt is made to write > content-length bytes. When that work is complete, this is likely where the
          * implementation will end up.
          */
         if (contentLength != -1 && bytesWritten >= contentLength) {

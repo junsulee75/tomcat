@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.jasper.JasperException;
+import org.apache.jasper.runtime.ExceptionUtils;
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
 import org.eclipse.jdt.core.compiler.IProblem;
@@ -57,8 +58,6 @@ import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
 /**
  * JDT class compiler. This compiler will load source dependencies from the context classloader, reducing dramatically
  * disk access during the compilation process. Based on code from Cocoon2.
- *
- * @author Remy Maucherat
  */
 public class JDTCompiler extends org.apache.jasper.compiler.Compiler {
 
@@ -112,8 +111,8 @@ public class JDTCompiler extends org.apache.jasper.compiler.Compiler {
                     }
                     result = new char[buf.length()];
                     buf.getChars(0, result.length, result, 0);
-                } catch (IOException e) {
-                    log.error(Localizer.getMessage("jsp.error.compilation.source", sourceFile), e);
+                } catch (IOException ioe) {
+                    log.error(Localizer.getMessage("jsp.error.compilation.source", sourceFile), ioe);
                 }
                 return result;
             }
@@ -219,13 +218,20 @@ public class JDTCompiler extends org.apache.jasper.compiler.Compiler {
                 if (result.equals(targetClassName) || result.startsWith(targetClassName + '$')) {
                     return false;
                 }
-                String resourceName = result.replace('.', '/') + ".class";
-                try (InputStream is = classLoader.getResourceAsStream(resourceName)) {
-                    return is == null;
-                } catch (IOException e) {
-                    // we are here, since close on is failed. That means it was not null
-                    return false;
+                /*
+                 * This might look heavy-weight but, with only the ClassLoader API available, trying to load the
+                 * resource as a class is the only reliable way found so far to differentiate between a class and a
+                 * package. Other options, such as getResource(), fail for some edge cases on case insensitive file
+                 * systems. As this code is only called at compile time, the performance impact is not a significant
+                 * concern.
+                 */
+                try {
+                    classLoader.loadClass(result);
+                } catch (Throwable t) {
+                    ExceptionUtils.handleThrowable(t);
+                    return true;
                 }
+                return false;
             }
 
             @Override
@@ -303,16 +309,12 @@ public class JDTCompiler extends org.apache.jasper.compiler.Compiler {
                 case "21" -> settings.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_21);
                 case "22" -> settings.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_22);
                 case "23" -> settings.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_23);
-                case "24" ->
-                    // Constant not available in latest ECJ version shipped with
-                    // Tomcat. May be supported in a snapshot build.
-                    // This is checked against the actual version below.
-                    settings.put(CompilerOptions.OPTION_Source, "24");
+                case "24" -> settings.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_24);
                 case "25" ->
-                    // Constant not available in latest ECJ version shipped with
-                    // Tomcat. May be supported in a snapshot build.
-                    // This is checked against the actual version below.
-                    settings.put(CompilerOptions.OPTION_Source, "25");
+                        // Constant not available in latest ECJ version shipped with
+                        // Tomcat. May be supported in a snapshot build.
+                        // This is checked against the actual version below.
+                        settings.put(CompilerOptions.OPTION_Source, "25");
                 default -> {
                     log.warn(Localizer.getMessage("jsp.warning.unknown.sourceVM", opt));
                     settings.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_21);
@@ -410,11 +412,8 @@ public class JDTCompiler extends org.apache.jasper.compiler.Compiler {
                     settings.put(CompilerOptions.OPTION_Compliance, CompilerOptions.VERSION_23);
                 }
                 case "24" -> {
-                    // Constant not available in latest ECJ version shipped with
-                    // Tomcat. May be supported in a snapshot build.
-                    // This is checked against the actual version below.
-                    settings.put(CompilerOptions.OPTION_TargetPlatform, "24");
-                    settings.put(CompilerOptions.OPTION_Compliance, "24");
+                    settings.put(CompilerOptions.OPTION_TargetPlatform, CompilerOptions.VERSION_24);
+                    settings.put(CompilerOptions.OPTION_Compliance, CompilerOptions.VERSION_24);
                 }
                 case "25" -> {
                     // Constant not available in latest ECJ version shipped with
@@ -445,8 +444,7 @@ public class JDTCompiler extends org.apache.jasper.compiler.Compiler {
                             String name = new String(problem.getOriginatingFileName());
                             try {
                                 problemList.add(ErrorDispatcher.createJavacError(name, pageNodes,
-                                        new StringBuilder(problem.getMessage()), problem.getSourceLineNumber(),
-                                        ctxt));
+                                        new StringBuilder(problem.getMessage()), problem.getSourceLineNumber(), ctxt));
                             } catch (JasperException e) {
                                 log.error(Localizer.getMessage("jsp.error.compilation.jdtProblemError"), e);
                             }
@@ -472,8 +470,8 @@ public class JDTCompiler extends org.apache.jasper.compiler.Compiler {
                         }
                     }
                 }
-            } catch (IOException exc) {
-                log.error(Localizer.getMessage("jsp.error.compilation.jdt"), exc);
+            } catch (IOException ioe) {
+                log.error(Localizer.getMessage("jsp.error.compilation.jdt"), ioe);
             }
         };
 

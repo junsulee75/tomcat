@@ -36,12 +36,7 @@ import org.xml.sax.helpers.AttributesImpl;
 /**
  * This class implements a parser for a JSP page (non-xml view). JSP page grammar is included here for reference. The
  * token '#' that appears in the production indicates the current input token location in the production.
- *
- * @author Kin-man Chung
- * @author Shawn Bayern
- * @author Mark Roth
  */
-
 class Parser implements TagConstants {
 
     private final ParserController parserController;
@@ -245,8 +240,8 @@ class Parser implements TagConstants {
                 buf.append(ch);
                 reader.nextChar();
                 ch = (char) reader.peekChar();
-            } while (Character.isLetter(ch) || Character.isDigit(ch) ||
-                ch == '.' || ch == '_' || ch == '-' || ch == ':');
+            } while (Character.isLetter(ch) || Character.isDigit(ch) || ch == '.' || ch == '_' || ch == '-' ||
+                    ch == ':');
             return buf.toString();
         }
         return null;
@@ -328,8 +323,8 @@ class Parser implements TagConstants {
             }
         } catch (FileNotFoundException ex) {
             err.jspError(start, "jsp.error.file.not.found", file);
-        } catch (Exception ex) {
-            err.jspError(start, ex.getMessage());
+        } catch (Exception e) {
+            err.jspError(start, e.getMessage());
         }
     }
 

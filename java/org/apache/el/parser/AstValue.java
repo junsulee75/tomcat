@@ -35,10 +35,6 @@ import org.apache.el.stream.Optional;
 import org.apache.el.util.MessageFactory;
 import org.apache.el.util.ReflectionUtil;
 
-
-/**
- * @author Jacob Hookom [jacob@hookom.net]
- */
 public final class AstValue extends SimpleNode {
 
     private static final Object[] EMPTY_ARRAY = new Object[0];
@@ -269,8 +265,8 @@ public final class AstValue extends SimpleNode {
 
         int paramCount = types.length;
 
-        if (m.isVarArgs() && paramCount > 1 && (src == null || paramCount > src.length) || !m.isVarArgs() &&
-            (src == null || src.length != paramCount)) {
+        if (m.isVarArgs() && paramCount > 1 && (src == null || paramCount > src.length) ||
+                !m.isVarArgs() && (src == null || src.length != paramCount)) {
             String srcCount = null;
             if (src != null) {
                 srcCount = Integer.toString(src.length);

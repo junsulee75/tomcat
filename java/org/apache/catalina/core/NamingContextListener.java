@@ -76,8 +76,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Helper class used to initialize and populate the JNDI context associated with each context and server.
- *
- * @author Remy Maucherat
  */
 public class NamingContextListener implements LifecycleListener, PropertyChangeListener {
 
@@ -235,7 +233,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                 try {
                     createNamingContext();
                 } catch (NamingException e) {
-                    log.error(sm.getString("naming.namingContextCreationFailed", e));
+                    log.error(sm.getString("naming.namingContextCreationFailed", container), e);
                 }
 
                 namingResources.addPropertyChangeListener(this);
@@ -248,7 +246,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                         ContextBindings.bindClassLoader(container, token,
                                 ((Context) container).getLoader().getClassLoader());
                     } catch (NamingException e) {
-                        log.error(sm.getString("naming.bindFailed", e));
+                        log.error(sm.getString("naming.bindFailed", container), e);
                     }
                 }
 
@@ -257,7 +255,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                     try {
                         ContextBindings.bindClassLoader(container, token, this.getClass().getClassLoader());
                     } catch (NamingException e) {
-                        log.error(sm.getString("naming.bindFailed", e));
+                        log.error(sm.getString("naming.bindFailed", container), e);
                     }
                     if (container instanceof StandardServer) {
                         ((StandardServer) container).setGlobalNamingContext(namingContext);
@@ -491,6 +489,13 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
         } else {
             compCtx = namingContext.createSubcontext("comp");
             envCtx = compCtx.createSubcontext("env");
+            /*
+             * Jakarta Platform Specification, 5.2.2: Application Component Environment Namespaces
+             *
+             * "java:module" and "java:comp" refer to the same namespace in a web module (i.e. a web application).
+             * Implement this by binding the "comp" sub-context we just created to the "module" name as well.
+             */
+            namingContext.bind("module", compCtx);
         }
 
         int i;
@@ -565,7 +570,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                 // Ignore because UserTransaction was obviously
                 // added via ResourceLink
             } catch (NamingException e) {
-                log.error(sm.getString("naming.bindFailed", e));
+                log.error(sm.getString("naming.bindFailed", "UserTransaction"), e);
             }
         }
 
@@ -574,7 +579,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
             try {
                 compCtx.bind("Resources", ((Context) container).getResources());
             } catch (NamingException e) {
-                log.error(sm.getString("naming.bindFailed", e));
+                log.error(sm.getString("naming.bindFailed", "Resources"), e);
             }
         }
 
@@ -648,7 +653,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
             createSubcontexts(envCtx, ejb.getName());
             envCtx.bind(ejb.getName(), ref);
         } catch (NamingException e) {
-            log.error(sm.getString("naming.bindFailed", e));
+            log.error(sm.getString("naming.bindFailed", ejb.getName()), e);
         }
     }
 
@@ -748,7 +753,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                 createSubcontexts(envCtx, env.getName());
                 envCtx.bind(env.getName(), value);
             } catch (NamingException e) {
-                log.error(sm.getString("naming.invalidEnvEntryValue", e));
+                log.error(sm.getString("naming.invalidEnvEntryValue", env.getName()), e);
             }
         }
     }
@@ -839,7 +844,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                             log.debug(sm.getString("naming.addSlash", service.getWsdlfile()));
                         }
                     } catch (MalformedURLException e) {
-                        log.error(sm.getString("naming.wsdlFailed", e));
+                        log.error(sm.getString("naming.wsdlFailed", service.getWsdlfile()), e);
                     }
                 }
                 if (wsdlURL == null) {
@@ -874,7 +879,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                             log.debug(sm.getString("naming.addSlash", service.getJaxrpcmappingfile()));
                         }
                     } catch (MalformedURLException e) {
-                        log.error(sm.getString("naming.wsdlFailed", e));
+                        log.error(sm.getString("naming.wsdlFailed", service.getJaxrpcmappingfile()), e);
                     }
                 }
                 if (jaxrpcURL == null) {
@@ -935,7 +940,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
             createSubcontexts(envCtx, service.getName());
             envCtx.bind(service.getName(), ref);
         } catch (NamingException e) {
-            log.error(sm.getString("naming.bindFailed", e));
+            log.error(sm.getString("naming.bindFailed", service.getName()), e);
         }
     }
 
@@ -970,7 +975,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
             createSubcontexts(envCtx, resource.getName());
             envCtx.bind(resource.getName(), ref);
         } catch (NamingException e) {
-            log.error(sm.getString("naming.bindFailed", e));
+            log.error(sm.getString("naming.bindFailed", resource.getName()), e);
         }
 
         if (("javax.sql.DataSource".equals(ref.getClassName()) ||
@@ -982,7 +987,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
                 Registry.getRegistry(null).registerComponent(actualResource, on, null);
                 objectNames.put(resource.getName(), on);
             } catch (Exception e) {
-                log.warn(sm.getString("naming.jmxRegistrationFailed", e));
+                log.warn(sm.getString("naming.jmxRegistrationFailed", resource.getName()), e);
             }
             // Bug 63210. DBCP2 DataSources require an explicit close. This goes
             // further and cleans up and AutoCloseable DataSource by default.
@@ -1022,7 +1027,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
             createSubcontexts(envCtx, resourceEnvRef.getName());
             envCtx.bind(resourceEnvRef.getName(), ref);
         } catch (NamingException e) {
-            log.error(sm.getString("naming.bindFailed", e));
+            log.error(sm.getString("naming.bindFailed", resourceEnvRef.getName()), e);
         }
     }
 
@@ -1054,7 +1059,7 @@ public class NamingContextListener implements LifecycleListener, PropertyChangeL
             createSubcontexts(envCtx, resourceLink.getName());
             ctx.bind(resourceLink.getName(), ref);
         } catch (NamingException e) {
-            log.error(sm.getString("naming.bindFailed", e));
+            log.error(sm.getString("naming.bindFailed", resourceLink.getName()), e);
         }
 
         ResourceLinkFactory.registerGlobalResourceAccess(getGlobalNamingContext(), resourceLink.getName(),

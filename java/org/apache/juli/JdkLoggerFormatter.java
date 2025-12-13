@@ -31,8 +31,6 @@ import java.util.logging.LogRecord;
  * </pre>
  *
  * Example: 1130122891846 Http11BaseProtocol I Initializing Coyote HTTP/1.1 on http-8800
- *
- * @author Costin Manolache
  */
 public class JdkLoggerFormatter extends Formatter {
 
@@ -96,7 +94,7 @@ public class JdkLoggerFormatter extends Formatter {
         buf.append(" ".repeat(Math.max(0, 8 - buf.length())));
 
         // Append the message
-        buf.append(message);
+        buf.append(LogUtil.escape(message));
 
         // Append stack trace if not null
         if (t != null) {
@@ -106,7 +104,7 @@ public class JdkLoggerFormatter extends Formatter {
             java.io.PrintWriter pw = new java.io.PrintWriter(sw);
             t.printStackTrace(pw);
             pw.close();
-            buf.append(sw);
+            buf.append(LogUtil.escape(sw.toString()));
         }
 
         buf.append(System.lineSeparator());

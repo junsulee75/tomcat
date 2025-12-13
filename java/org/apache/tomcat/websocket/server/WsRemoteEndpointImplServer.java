@@ -105,7 +105,9 @@ public class WsRemoteEndpointImplServer extends WsRemoteEndpointImplBase {
 
         /*
          * Special handling is required only when all of the following are true:
+         *
          * - A close message is being sent
+         *
          * - This thread currently holds the socketWrapper lock (i.e. the thread is current processing a socket event)
          */
         if (!(opCode == Constants.OPCODE_CLOSE && socketWrapper.getLock().isHeldByCurrentThread())) {
@@ -163,7 +165,7 @@ public class WsRemoteEndpointImplServer extends WsRemoteEndpointImplBase {
                 }
             }
             socketWrapper.write(block ? BlockingMode.BLOCK : BlockingMode.SEMI_BLOCK, timeout, TimeUnit.MILLISECONDS,
-                    null, SocketWrapperBase.COMPLETE_WRITE_WITH_COMPLETION, new CompletionHandler<Long, Void>() {
+                    null, SocketWrapperBase.COMPLETE_WRITE_WITH_COMPLETION, new CompletionHandler<Long,Void>() {
                         @Override
                         public void completed(Long result, Void attachment) {
                             if (block) {
@@ -220,8 +222,8 @@ public class WsRemoteEndpointImplServer extends WsRemoteEndpointImplBase {
                     socketWrapper.setWriteTimeout(timeout);
                     socketWrapper.flush(true);
                     handler.onResult(new SendResult(getSession()));
-                } catch (IOException e) {
-                    SendResult sr = new SendResult(getSession(), e);
+                } catch (IOException ioe) {
+                    SendResult sr = new SendResult(getSession(), ioe);
                     handler.onResult(sr);
                 }
             }
@@ -376,8 +378,7 @@ public class WsRemoteEndpointImplServer extends WsRemoteEndpointImplBase {
     }
 
 
-    private record OnResultRunnable(WsSession session, SendHandler sh,
-                                    Throwable t) implements Runnable {
+    private record OnResultRunnable(WsSession session, SendHandler sh, Throwable t) implements Runnable {
         @Override
         public void run() {
             if (t == null) {

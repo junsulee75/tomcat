@@ -27,10 +27,6 @@ import org.apache.jasper.compiler.TldCache;
 
 /**
  * A class to hold all init parameters specific to the JSP engine.
- *
- * @author Anil K. Vijendran
- * @author Hans Bergsten
- * @author Pierre Delisle
  */
 public interface Options {
 
@@ -345,7 +341,7 @@ public interface Options {
 
     /**
      * A string containing a comma-separated list of names to which custom tag implementations should be applied.
-     * Unknown or unused tag entries are harmless.  Generally defined via an init parameter on the JspServlet.
+     * Unknown or unused tag entries are harmless. Generally defined via an init parameter on the JspServlet.
      *
      * @return which tags to use
      */

@@ -46,12 +46,6 @@ import org.apache.tomcat.util.descriptor.tld.TldResourcePath;
  * A placeholder for various things that are used throughout the JSP engine. This is a per-request/per-context data
  * structure. Some of the instance variables are set at different points. Most of the path-related stuff is here -
  * mangling names, versions, dirs, loading resources and dealing with uris.
- *
- * @author Anil K. Vijendran
- * @author Harish Prabandham
- * @author Pierre Delisle
- * @author Costin Manolache
- * @author Kin-man Chung
  */
 public class JspCompilationContext {
 
@@ -391,17 +385,17 @@ public class JspCompilationContext {
                     result = uc.getLastModified();
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException ioe) {
             if (log.isDebugEnabled()) {
-                log.debug(Localizer.getMessage("jsp.error.lastModified", getJspFile()), e);
+                log.debug(Localizer.getMessage("jsp.error.lastModified", getJspFile()), ioe);
             }
         } finally {
             if (uc != null) {
                 try {
                     uc.getInputStream().close();
-                } catch (IOException e) {
+                } catch (IOException ioe) {
                     if (log.isDebugEnabled()) {
-                        log.debug(Localizer.getMessage("jsp.error.lastModified", getJspFile()), e);
+                        log.debug(Localizer.getMessage("jsp.error.lastModified", getJspFile()), ioe);
                     }
                     result = -1;
                 }
@@ -589,7 +583,6 @@ public class JspCompilationContext {
                 jspCompiler.removeGeneratedFiles();
                 jspLoader = null;
                 jspCompiler.compile();
-                jsw.setReload(true);
                 jsw.setCompilationException(null);
             } catch (JasperException ex) {
                 // Cache compilation exception
@@ -602,11 +595,13 @@ public class JspCompilationContext {
             } catch (FileNotFoundException fnfe) {
                 // Re-throw to let caller handle this - will result in a 404
                 throw fnfe;
-            } catch (Exception ex) {
-                JasperException je = new JasperException(Localizer.getMessage("jsp.error.unable.compile"), ex);
+            } catch (Exception e) {
+                JasperException je = new JasperException(Localizer.getMessage("jsp.error.unable.compile"), e);
                 // Cache compilation exception
                 jsw.setCompilationException(je);
                 throw je;
+            } finally {
+                jsw.setReload(true);
             }
         }
     }
@@ -621,8 +616,8 @@ public class JspCompilationContext {
             servletClass = jspLoader.loadClass(name);
         } catch (ClassNotFoundException cex) {
             throw new JasperException(Localizer.getMessage("jsp.error.unable.load"), cex);
-        } catch (Exception ex) {
-            throw new JasperException(Localizer.getMessage("jsp.error.unable.compile"), ex);
+        } catch (Exception e) {
+            throw new JasperException(Localizer.getMessage("jsp.error.unable.compile"), e);
         }
         removed = false;
         return servletClass;

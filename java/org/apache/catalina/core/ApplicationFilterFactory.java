@@ -31,9 +31,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Factory for the creation and caching of Filters and creation of Filter Chains.
- *
- * @author Greg Murray
- * @author Remy Maucherat
  */
 public final class ApplicationFilterFactory {
 

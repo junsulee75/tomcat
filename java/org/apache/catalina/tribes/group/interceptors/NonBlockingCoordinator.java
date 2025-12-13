@@ -238,14 +238,24 @@ public class NonBlockingCoordinator extends ChannelInterceptorBase {
                         new CoordinationEvent(CoordinationEvent.EVT_PROCESS_ELECT, this, "Election, sending request"));
                 sendElectionMsg(local, others[0], msg);
             } else {
-                try {
-                    coordMsgReceived.set(false);
-                    fireInterceptorEvent(new CoordinationEvent(CoordinationEvent.EVT_WAIT_FOR_MSG, this,
-                            "Election, waiting for request"));
-                    electionMutex.wait(waitForCoordMsgTimeout);
-                } catch (InterruptedException x) {
-                    Thread.currentThread().interrupt();
-                }
+                coordMsgReceived.set(false);
+                fireInterceptorEvent(new CoordinationEvent(CoordinationEvent.EVT_WAIT_FOR_MSG, this,
+                        "Election, waiting for request"));
+                long timeout = waitForCoordMsgTimeout;
+                long timeoutEndNanos = System.nanoTime() + timeout * 1_000_000;
+                do {
+                    try {
+                        electionMutex.wait(timeout);
+                    } catch (InterruptedException x) {
+                        Thread.currentThread().interrupt();
+                    }
+                    timeout = (timeoutEndNanos - System.nanoTime()) / 1_000_000;
+                    /*
+                     * Spurious wake-ups are possible. Keep waiting if a) the condition we were waiting for hasn't
+                     * happened (i.e. notify() was not called) AND b) the timeout has not expired AND c) the thread was
+                     * not interrupted.
+                     */
+                } while (suggestedviewId == null && !coordMsgReceived.get() && timeout > 0 && !Thread.interrupted());
                 String msg;
                 if (suggestedviewId == null && !coordMsgReceived.get()) {
                     if (Thread.interrupted()) {
@@ -266,8 +276,8 @@ public class NonBlockingCoordinator extends ChannelInterceptorBase {
         Arrays.fill(m, others);
         Member[] mbrs = m.getMembers();
         m.reset();
-        return new CoordinationMessage(leader, local, mbrs,
-                new UniqueId(UUIDGenerator.randomUUID(true)), COORD_REQUEST);
+        return new CoordinationMessage(leader, local, mbrs, new UniqueId(UUIDGenerator.randomUUID(true)),
+                COORD_REQUEST);
     }
 
     protected void sendElectionMsg(Member local, Member next, CoordinationMessage msg) throws ChannelException {
@@ -286,6 +296,7 @@ public class NonBlockingCoordinator extends ChannelInterceptorBase {
                 sendElectionMsg(local, msg.getMembers()[current], msg);
                 sent = true;
             } catch (ChannelException x) {
+                // Exception is logged further up stack
                 log.warn(sm.getString("nonBlockingCoordinator.electionMessage.sendfailed", msg.getMembers()[current]));
                 current = Arrays.nextIndex(msg.getMembers()[current], msg.getMembers());
                 if (current == next) {
@@ -322,8 +333,8 @@ public class NonBlockingCoordinator extends ChannelInterceptorBase {
             return true;
         } catch (SocketTimeoutException | ConnectException x) {
             // do nothing, we couldn't connect
-        } catch (Exception x) {
-            log.error(sm.getString("nonBlockingCoordinator.memberAlive.failed"), x);
+        } catch (Exception e) {
+            log.error(sm.getString("nonBlockingCoordinator.memberAlive.failed"), e);
         }
         return false;
     }
@@ -625,8 +636,8 @@ public class NonBlockingCoordinator extends ChannelInterceptorBase {
                     startElection(true);
                 }
             }
-        } catch (Exception x) {
-            log.error(sm.getString("nonBlockingCoordinator.heartbeat.failed"), x);
+        } catch (Exception e) {
+            log.error(sm.getString("nonBlockingCoordinator.heartbeat.failed"), e);
         } finally {
             super.heartbeat();
         }

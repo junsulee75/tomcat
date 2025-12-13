@@ -40,10 +40,6 @@ import org.apache.tomcat.util.res.StringManager;
 
 /**
  * Expand out a WAR in a Host's appBase.
- *
- * @author Craig R. McClanahan
- * @author Remy Maucherat
- * @author Glenn L. Nielsen
  */
 public class ExpandWar {
 
@@ -263,8 +259,8 @@ public class ExpandWar {
                             throw new EOFException();
                         }
                     }
-                } catch (IOException e) {
-                    log.error(sm.getString("expandWar.copy", fileSrc, fileDest), e);
+                } catch (IOException ioe) {
+                    log.error(sm.getString("expandWar.copy", fileSrc, fileDest), ioe);
                     result = false;
                 }
             }
@@ -274,8 +270,8 @@ public class ExpandWar {
 
 
     /**
-     * Delete the specified directory, including all of its contents and subdirectories recursively. Any failure will
-     * be logged.
+     * Delete the specified directory, including all of its contents and subdirectories recursively. Any failure will be
+     * logged.
      *
      * @param dir File object representing the directory to be deleted
      *
@@ -314,8 +310,8 @@ public class ExpandWar {
 
 
     /**
-     * Delete the specified directory, including all of its contents and subdirectories recursively. Any failure will
-     * be logged.
+     * Delete the specified directory, including all of its contents and subdirectories recursively. Any failure will be
+     * logged.
      *
      * @param dir File object representing the directory to be deleted
      *

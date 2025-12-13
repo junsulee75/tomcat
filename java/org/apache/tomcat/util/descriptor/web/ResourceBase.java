@@ -26,9 +26,7 @@ import java.util.Map;
 
 
 /**
- * Representation of a Context element
- *
- * @author Peter Rossbach (pero@apache.org)
+ * Representation of a Context element.
  */
 public class ResourceBase implements Serializable, Injectable {
 
@@ -50,7 +48,6 @@ public class ResourceBase implements Serializable, Injectable {
     public void setDescription(String description) {
         this.description = description;
     }
-
 
 
     /**
@@ -100,10 +97,11 @@ public class ResourceBase implements Serializable, Injectable {
     /**
      * Holder for our configured properties.
      */
-    private final Map<String, Object> properties = new HashMap<>();
+    private final Map<String,Object> properties = new HashMap<>();
 
     /**
      * @param name The property name
+     *
      * @return a configured property.
      */
     public Object getProperty(String name) {
@@ -112,7 +110,8 @@ public class ResourceBase implements Serializable, Injectable {
 
     /**
      * Set a configured property.
-     * @param name The property name
+     *
+     * @param name  The property name
      * @param value The property value
      */
     public void setProperty(String name, Object value) {
@@ -121,6 +120,7 @@ public class ResourceBase implements Serializable, Injectable {
 
     /**
      * Remove a configured property.
+     *
      * @param name The property name
      */
     public void removeProperty(String name) {
@@ -129,6 +129,7 @@ public class ResourceBase implements Serializable, Injectable {
 
     /**
      * List properties.
+     *
      * @return the property names iterator
      */
     public Iterator<String> listProperties() {

@@ -70,6 +70,7 @@ import org.apache.tomcat.util.descriptor.web.FilterMap;
 import org.apache.tomcat.util.descriptor.web.LoginConfig;
 import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
 import org.apache.tomcat.util.http.FastHttpDateFormat;
+import org.apache.tomcat.util.http.Method;
 import org.apache.tomcat.util.http.RequestUtil;
 import org.apache.tomcat.util.res.StringManager;
 
@@ -85,8 +86,6 @@ import org.apache.tomcat.util.res.StringManager;
  * <p>
  * <b>USAGE CONSTRAINT</b>: This Valve is only useful when processing HTTP requests. Requests of any other type will
  * simply be passed through.
- *
- * @author Craig R. McClanahan
  */
 public abstract class AuthenticatorBase extends ValveBase implements Authenticator, RegistrationListener {
 
@@ -486,7 +485,7 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
 
         // Make sure that constrained resources are not cached by web proxies
         // or browsers as caching can provide a security hole
-        if (constraints != null && disableProxyCaching && !"POST".equalsIgnoreCase(request.getMethod())) {
+        if (constraints != null && disableProxyCaching && !Method.POST.equals(request.getMethod())) {
             if (securePagesWithPragma) {
                 // Note: These can cause problems with downloading files with IE
                 response.setHeader("Pragma", "No-cache");
@@ -609,7 +608,7 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
         if (allowCorsPreflight != AllowCorsPreflight.NEVER) {
             // First check to see if this is a CORS Preflight request
             // This is a subset of the tests in CorsFilter.checkRequestType
-            if ("OPTIONS".equals(request.getMethod())) {
+            if (Method.OPTIONS.equals(request.getMethod())) {
                 String originHeader = request.getHeader(CorsFilter.REQUEST_HEADER_ORIGIN);
                 if (originHeader != null && !originHeader.isEmpty() && RequestUtil.isValidOrigin(originHeader) &&
                         !RequestUtil.isSameOrigin(request, originHeader)) {
@@ -726,12 +725,13 @@ public abstract class AuthenticatorBase extends ValveBase implements Authenticat
         Class<?> clazz = null;
         try {
             clazz = Class.forName(jaspicCallbackHandlerClass, true, Thread.currentThread().getContextClassLoader());
-        } catch (ClassNotFoundException e) {
-            // Proceed with the retry below
+        } catch (ClassNotFoundException ignore) {
+            // Not found in the context class loader (web application class loader). Re-try below.
         }
 
         try {
             if (clazz == null) {
+                // Look in the same class loader that loaded this class - usually Tomcat's common loader.
                 clazz = Class.forName(jaspicCallbackHandlerClass);
             }
             callbackHandler = (CallbackHandler) clazz.getConstructor().newInstance();
